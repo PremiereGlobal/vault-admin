@@ -1,4 +1,4 @@
-# Vault Admin
+# Vault Admin [![Build Status](https://travis-ci.org/ReadyTalk/vault-admin.svg?branch=master)](https://travis-ci.org/ReadyTalk/vault-admin)
 
 This project manages Vault administrative tasks such as LDAP groups/policy updates and AWS provisioner setup.
 
