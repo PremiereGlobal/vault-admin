@@ -12,5 +12,7 @@ deploy:
   file_glob: true
   file: "bin/*"
   skip_cleanup: true
+  on:
+    all_branches: true
   # on:
   #   tags: true
