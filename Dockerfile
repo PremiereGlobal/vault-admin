@@ -1,7 +1,7 @@
 FROM golang:1.10.2-alpine as builder
 
-ARG VERSION
-ARG GOOS
+ARG VERSION=master
+ARG GOOS=linux
 
 RUN apk update && apk --no-cache add curl git
 
