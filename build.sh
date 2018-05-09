@@ -1,6 +1,6 @@
 #!/bin/sh
 
-VERSION=0.0.1
+VERSION=master
 GOOS=linux
 
 docker build --build-arg VERSION=${VERSION} --build-arg GOOS=${GOOS} -t readytalk/vault-admin:binary-build ./

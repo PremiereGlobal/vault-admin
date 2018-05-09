@@ -1,8 +1,9 @@
 sudo: required
+language: go
 
 services:
   - docker
 
 script:
-  - ./publish_binary.sh
+  - ./build.sh
 # - docker build -t readytalk/$IMAGE_NAME:$MAJ_VERSION.$TRAVIS_BUILD_NUMBER-$COMMIT
