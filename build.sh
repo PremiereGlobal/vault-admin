@@ -13,6 +13,5 @@ docker run --rm --name vault-admin-build -d readytalk/vault-admin:binary-build s
 docker cp vault-admin-build:/usr/bin/vadmin bin
 docker stop vault-admin-build
 
-cd bin
 zip bin/vadmin-${GOOS}-${VERSION}.zip bin/vadmin
 rm bin/vadmin
