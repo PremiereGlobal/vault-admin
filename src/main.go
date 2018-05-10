@@ -66,7 +66,6 @@ func main() {
       log.Fatal(err.Error())
   }
 
-  // 75f4fc2a-4655-54a3-0605-7791a781aa14
   // Set log level
   if Spec.Debug {
     log.SetLevel(log.DebugLevel)

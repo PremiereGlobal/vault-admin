@@ -5,7 +5,6 @@ import (
   "encoding/json"
   "path/filepath"
   log "github.com/Sirupsen/logrus"
-  // "reflect"
 )
 
 type SecretsEngineAWS struct {

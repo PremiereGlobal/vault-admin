@@ -6,10 +6,8 @@ import (
   "strings"
   "fmt"
   "io/ioutil"
-  log "github.com/Sirupsen/logrus"
-  // "reflect"
   "regexp"
-
+  log "github.com/Sirupsen/logrus"
 )
 
 func getJsonFile(path string) (bool, string) {
@@ -60,7 +58,6 @@ func getSecretArray(path string) (bool, map[string]string) {
 func getSecretList(path string) (bool, []string) {
 
   var secretArray []string
-  // secretArray = make([]string)
 
   // Read secrets from Vault for substitution
   secret, err := Vault.List(path)

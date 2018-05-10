@@ -158,11 +158,8 @@ func ConfigureLdapPolicies(path string, ldapPolicyMappingList LdapPolicyMappingL
 
 func CleanupLdapPolicies(path string, ldapPolicyMappingList LdapPolicyMappingList) {
   existing_groups, _ := Vault.List("/auth/" + path + "groups");
-  // log.Debug(existing_groups.Data)
 
   for _, v := range existing_groups.Data {
-
-    // log.Debug(reflect.TypeOf(k), reflect.TypeOf(v))
     switch ldapGroups := v.(type) {
       case []interface{}:
         for _, groupArrayValue := range ldapGroups {
