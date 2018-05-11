@@ -17,7 +17,10 @@ type SecretsEngine struct {
 type SecretsEnginesList map[string]SecretsEngine
 
 func SyncSecretsEngines() {
+
   secretsEnginesList := SecretsEnginesList{}
+
+  log.Info("Syncing Secrets Engines")
   GetSecretsEngines(secretsEnginesList)
   ConfigureSecretsEngines(secretsEnginesList)
   CleanupSecretsEngines(secretsEnginesList)
@@ -64,7 +67,10 @@ func ConfigureSecretsEngines(secretsEnginesList SecretsEnginesList) {
         log.Fatal("Secrets engine path [" + secretsEngine.Path + "] exists but doesn't match type; ", existing_mounts[secretsEngine.Path].Type, "!=", secretsEngine.MountInput.Type)
       }
       log.Debug("Secrets engine path [" + secretsEngine.Path + "] already enabled and type matches, tuning for any updates")
-      log.Debug("Unable to update description field (if changed), current limitation of auth/mount API")
+
+      if (existing_mounts[secretsEngine.Path].Description != secretsEngine.MountInput.Description) {
+        log.Warn("Unable to update description field for [" + secretsEngine.Path + "]; This is a current limitation of Vault API")
+      }
 
       err := VaultSys.TuneMount(secretsEngine.Path, secretsEngine.MountInput.Config)
       if err != nil {

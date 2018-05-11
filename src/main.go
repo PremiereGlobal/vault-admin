@@ -104,11 +104,12 @@ func main() {
   log.Debug("Version: ", health.Version)
 
   // Call sync methods
-  SyncAuthMounts()
+  SyncAuditDevices()
+  SyncAuthMethods()
   SyncPolicies()
   SyncSecretsEngines()
 
-  log.Debug("Done")
+  log.Info("Done")
 }
 
 

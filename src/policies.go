@@ -14,7 +14,10 @@ type Policy struct {
 type PolicyList map[string]Policy
 
 func SyncPolicies() {
+
   policyList := PolicyList{}
+
+  log.Info("Syncing Policies")
   GetPolicies(policyList)
   WritePolicies(policyList)
   CleanupPolicies(policyList)

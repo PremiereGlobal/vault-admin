@@ -48,6 +48,8 @@ All options can be set via environment variables or command line options
 The configuration files are what drive how Vault is configured.  The following is an example of how to set up your `CONFIGURATION_PATH`.  See the [examples/](examples/) directory for how these files should be structured.
 
 ```bash
+├── audit_devices/
+│   └── stdout.json
 ├── auth_methods/
 │   ├── github.json
 │   ├── ldap.json

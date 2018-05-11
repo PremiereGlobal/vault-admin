@@ -1,0 +1,7 @@
+{
+  "type": "file",
+  "description": "Audit logging to stdout",
+  "options": {
+    "path": "stdout"
+  }
+}

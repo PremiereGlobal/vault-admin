@@ -8,14 +8,14 @@ import (
   VaultApi "github.com/hashicorp/vault/api"
 )
 
-type AuthMount struct {
+type AuthMethod struct {
   Path string `json:"path"`
   AuthOptions VaultApi.EnableAuthOptions `json:"auth_options"`
   Config map[string]interface{} `json:"config"`
   PolicyMap map[string]interface{} `json:"policy_map"`
 }
 
-type AuthMountList map[string]AuthMount
+type AuthMethodList map[string]AuthMethod
 
 type LdapPolicyMapping struct {
   Policies []string
@@ -23,15 +23,17 @@ type LdapPolicyMapping struct {
 
 type LdapPolicyMappingList map[string]LdapPolicyMapping
 
-func SyncAuthMounts() {
+func SyncAuthMethods() {
 
-  authMountList := AuthMountList{}
-  GetAuthMounts(authMountList)
-  ConfigureAuthMounts(authMountList)
-  CleanupAuthMounts(authMountList)
+  authMethodList := AuthMethodList{}
+
+  log.Info("Syncing Auth Methods")
+  GetAuthMethods(authMethodList)
+  ConfigureAuthMethods(authMethodList)
+  CleanupAuthMethods(authMethodList)
 }
 
-func GetAuthMounts(authMountList AuthMountList) {
+func GetAuthMethods(authMethodList AuthMethodList) {
   files, err := ioutil.ReadDir(Spec.ConfigurationPath+"/auth_methods/")
 	if err != nil {
 		log.Fatal(err)
@@ -46,28 +48,28 @@ func GetAuthMounts(authMountList AuthMountList) {
     	}
 
       if (!isJSON(string(content))) {
-        log.Fatal("Auth mount not valid JSON: ", file.Name())
+        log.Fatal("Auth method configuration not valid JSON: ", file.Name())
       }
 
-      var m AuthMount
+      var m AuthMethod
 
       // Use the filename as the mount path
       filename := file.Name()
       m.Path = filename[0:len(filename)-len(filepath.Ext(filename))] + "/"
       err = json.Unmarshal([]byte(content), &m)
       if err != nil {
-          log.Fatal("Error parsing auth mount: ", file.Name(), " ", err)
+          log.Fatal("Error parsing auth method configuration: ", file.Name(), " ", err)
       }
 
-      authMountList[m.Path] = m
+      authMethodList[m.Path] = m
     } else {
       log.Warn("Auth file has wrong extension.  Will not be processed: ", Spec.ConfigurationPath+"/auth_methods/"+file.Name())
     }
 	}
 }
 
-func ConfigureAuthMounts(authMountList AuthMountList) {
-  for _, mount := range authMountList {
+func ConfigureAuthMethods(authMethodList AuthMethodList) {
+  for _, mount := range authMethodList {
 
     // Check if mount is enabled
     existing_mounts, _ := VaultSys.ListAuth();
@@ -76,7 +78,11 @@ func ConfigureAuthMounts(authMountList AuthMountList) {
         log.Fatal("Auth mount path  " + mount.Path + " exists but doesn't match type: ", existing_mounts[mount.Path].Type, "!=", mount.AuthOptions.Type)
       }
       log.Debug("Auth mount path " + mount.Path + " already enabled and type matches, tuning for any updates");
-      log.Debug("Unable to update description field (if changed), current limitation of auth/mount API");
+
+      if (existing_mounts[mount.Path].Description != mount.AuthOptions.Description) {
+        log.Warn("Unable to update description field for [" + mount.Path + "]; This is a current limitation of Vault API")
+      }
+
       var mc VaultApi.MountConfigInput
       mc.DefaultLeaseTTL = mount.AuthOptions.Config.DefaultLeaseTTL
       mc.MaxLeaseTTL = mount.AuthOptions.Config.MaxLeaseTTL
@@ -189,14 +195,14 @@ func CleanupLdapPolicies(path string, ldapPolicyMappingList LdapPolicyMappingLis
   }
 }
 
-func CleanupAuthMounts(authMountList AuthMountList) {
+func CleanupAuthMethods(authMethodList AuthMethodList) {
   existing_mounts, _ := VaultSys.ListAuth();
 
   for path, mount := range existing_mounts {
 
     // Ignore default token auth mount
     if(!(path == "token/" && mount.Type == "token")) {
-      if _, ok := authMountList[path]; ok {
+      if _, ok := authMethodList[path]; ok {
         log.Debug(path + " exists in configuration, no cleanup necessary")
       } else {
         log.Info(path + " does not exist in configuration, prompting to delete")

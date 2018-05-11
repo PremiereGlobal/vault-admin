@@ -150,8 +150,6 @@ func writeStringToVault(path string, data string) error {
   return nil
 }
 
-
-
 func checkExt(filename string, ext string) bool {
 	if filepath.Ext(filename) == ext {
 		return true
