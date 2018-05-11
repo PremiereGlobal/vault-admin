@@ -1,0 +1,8 @@
+{
+  "type": "aws",
+  "description": "Mount for primary AWS account secret backend",
+  "config": {
+    "default_lease_ttl": "2h",
+    "max_lease_ttl": "24h"
+  }
+}

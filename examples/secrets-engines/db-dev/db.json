@@ -1,0 +1,9 @@
+{
+  "max_idle_connections": "-1",
+  "max_connection_lifetime": "30s",
+  "connection_url": "postgresql://username:%{PASSWORD}%@db-dev.example.com:5432/postgres",
+  "plugin_name": "postgresql-database-plugin",
+  "allowed_roles": [
+    "read-only"
+  ]
+}

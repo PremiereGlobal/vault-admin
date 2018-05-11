@@ -1,0 +1,18 @@
+{
+  "path": {
+    "aws-main/creds/admin": {
+      "capabilities": [
+        "read"
+      ]
+    },
+    "secret/developers/*": {
+      "capabilities": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "list"
+      ]
+    }
+  }
+}

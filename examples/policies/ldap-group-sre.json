@@ -1,0 +1,18 @@
+{
+  "path": {
+    "aws-main/creds/admin": {
+      "capabilities": [
+        "read"
+      ]
+    },
+    "secret/sre/*": {
+      "capabilities": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "list"
+      ]
+    }
+  }
+}
