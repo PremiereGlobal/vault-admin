@@ -18,6 +18,10 @@ deploy:
   script: bash scripts/publish_docker.sh ${TRAVIS_BRANCH}
   on:
     tags: true
+- provider: script
+  script: bash scripts/publish_docker.sh latest
+  on:
+    branch: master
 env:
   global:
   - DOCKER_REPO=readytalk/vault-admin
