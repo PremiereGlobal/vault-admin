@@ -19,7 +19,7 @@ deploy:
   on:
     tags: true
 - provider: script
-  script: bash scripts/publish_docker.sh latest
+  script: bash scripts/publish_docker.sh ${TRAVIS_BRANCH} latest
   on:
     branch: master
 env:
