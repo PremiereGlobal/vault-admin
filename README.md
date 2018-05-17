@@ -1,6 +1,6 @@
 # Vault Admin [![Build Status](https://travis-ci.org/ReadyTalk/vault-admin.svg?branch=master)](https://travis-ci.org/ReadyTalk/vault-admin)
 
-This project manages Vault administrative tasks such as LDAP groups/policy updates and AWS provisioner setup.
+This utility configures Vault audit devices, auth methods, policies and secrets engines by syncing with a set of standard JSON configuration files.
 
 - [Installation](#installation)
 	- [CLI](#cli)
@@ -10,7 +10,7 @@ This project manages Vault administrative tasks such as LDAP groups/policy updat
 
 ## Installation
 
-This tool can be used via Docker or the CLI.
+This utility can be used via Docker or the CLI.
 
 ### CLI
 Download and extract the latest binary for your OS on the [releases page](https://github.com/ReadyTalk/vault-admin/releases)
@@ -39,7 +39,7 @@ All options can be set via environment variables or command line options
 | ----------------------- | ----------------------------------    | ---------------------------------------------------------- |
 | `CONFIGURATION_PATH` | --configuration-path, -c | Path to the configuration files |
 | `VAULT_ADDR` | --vault-addr, -a | Vault address (example: https://vault.mysite.com:8200) |
-| `VAULT_TOKEN` | --vault-token, -t | Vault token to use, otherwise will prompt for LDAP credentials |
+| `VAULT_TOKEN` | --vault-token, -t | Vault token to use |
 | `VAULT_SKIP_VERIFY` | --vault-skip-verify, -K | Skip Vault TLS certificate verification |
 | `VAULT_SECRET_BASE_PATH`  | --vault-secret-base-path, -s | Base secret path, in Vault, to pull secrets for substitution. Defaults to `secret/vault-admin` |
 | `DEBUG`  | --debug, -d | Turn on debug logging |
