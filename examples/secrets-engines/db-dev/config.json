@@ -1,8 +1,8 @@
 {
+  "type": "database",
+  "description": "Mount for database 'db-dev' secret backend",
   "config": {
     "max_lease_ttl": "24h",
     "default_lease_ttl": "2h"
-  },
-  "type": "database",
-  "description": "Mount for database 'db-dev' secret backend"
+  }
 }

@@ -79,13 +79,11 @@ func ConfigureAuthMethods(authMethodList AuthMethodList) {
       }
       log.Debug("Auth mount path " + mount.Path + " already enabled and type matches, tuning for any updates");
 
-      if (existing_mounts[mount.Path].Description != mount.AuthOptions.Description) {
-        log.Warn("Unable to update description field for [" + mount.Path + "]; This is a current limitation of Vault API")
-      }
-
       var mc VaultApi.MountConfigInput
       mc.DefaultLeaseTTL = mount.AuthOptions.Config.DefaultLeaseTTL
       mc.MaxLeaseTTL = mount.AuthOptions.Config.MaxLeaseTTL
+      mc.ListingVisibility = mount.AuthOptions.Config.ListingVisibility
+      mc.Description = &mount.AuthOptions.Description
       err := VaultSys.TuneMount("/auth/"+mount.Path, mc)
       if err != nil {
           log.Fatal("Error tuning mount: ", mount.Path, " ", err)
