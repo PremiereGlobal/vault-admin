@@ -68,9 +68,9 @@ func ConfigureSecretsEngines(secretsEnginesList SecretsEnginesList) {
       }
       log.Debug("Secrets engine path [" + secretsEngine.Path + "] already enabled and type matches, tuning for any updates")
 
-      if (existing_mounts[secretsEngine.Path].Description != secretsEngine.MountInput.Description) {
-        log.Warn("Unable to update description field for [" + secretsEngine.Path + "]; This is a current limitation of Vault API")
-      }
+      // Update the MountConfigInput description to match the MountInput description
+      // This is needed because of the way creating new mounts differs from existing ones?
+      secretsEngine.MountInput.Config.Description = &secretsEngine.MountInput.Description
 
       err := VaultSys.TuneMount(secretsEngine.Path, secretsEngine.MountInput.Config)
       if err != nil {

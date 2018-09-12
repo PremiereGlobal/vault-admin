@@ -3,14 +3,8 @@ FROM golang:1.10.2-alpine as builder
 ARG VERSION=master
 ARG GOOS=linux
 
-RUN apk update && apk --no-cache add curl git
-
-RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-
 WORKDIR /go/src/github.com/readytalk/vault-admin/
 COPY src/ .
-
-RUN dep init
 
 RUN CGO_ENABLED=0 GOOS=${GOOS} go build -ldflags "-X main.version=${VERSION}" -v -a -o vadmin .
 

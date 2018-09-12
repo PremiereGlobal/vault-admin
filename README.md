@@ -45,39 +45,4 @@ All options can be set via environment variables or command line options
 | `DEBUG`  | --debug, -d | Turn on debug logging |
 
 ## Configuration Files
-The configuration files are what drive how Vault is configured.  The following is an example of how to set up your `CONFIGURATION_PATH`.  See the [examples/](examples/) directory for how these files should be structured.
-
-```bash
-├── audit_devices/
-│   └── stdout.json
-├── auth_methods/
-│   ├── github.json
-│   ├── ldap.json
-│   └── ldap-2.json
-├── policies/
-│   ├── back-end-team.json
-│   ├── billing.json
-│   ├── ci-team.json
-│   ├── front-end-team.json
-│   └── sre-team.json
-├── secrets-engines/
-│   ├── aws-main/
-│   │   ├── aws.json
-│   │   ├── config.json
-│   │   ├── roles/
-│   │   │   ├── admin.json
-│   │   │   ├── s3-read-only.json
-│   │   │   ├── s3-read-write.json
-│   │   │   └── sqs.json
-│   ├── aws-sandbox/
-│   │   └── ...
-│   ├── db-dev/
-│   │   ├── db.json
-│   │   ├── config.json
-│   │   ├── roles/
-│   │   │   ├── admin.json
-│   │   │   ├── read-only.json
-│   │   │   └── read-write.json
-│   ├── db-prod/
-│   │   └── ...
-```
+The configuration files are what drive how Vault is configured.  See the [examples/](examples/) directory for more information on how to set up the configuration.
