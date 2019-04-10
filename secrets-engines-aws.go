@@ -120,12 +120,14 @@ func getAwsRoles(secretsEngine *SecretsEngine, secretsEngineAWS *SecretsEngineAW
       }
 
       // Marshal the raw policy document to a string
-      raw_policy, err := json.Marshal(r.RawPolicy)
-      if err != nil {
-          log.Fatal("Error parsing raw policy statement in "+file.Name()+" ", err)
+      if(r.RawPolicy != nil) {
+        raw_policy, err := json.Marshal(r.RawPolicy)
+        if err != nil {
+            log.Fatal("Error parsing raw policy statement in "+file.Name()+" ", err)
+        }
+        r.PolicyDocument = string(raw_policy)
+        r.RawPolicy = nil
       }
-      r.PolicyDocument = string(raw_policy)
-      r.RawPolicy = nil
 
       secretsEngineAWS.Roles[role_name] = r
 

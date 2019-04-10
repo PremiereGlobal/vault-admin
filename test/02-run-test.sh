@@ -20,9 +20,8 @@ docker run \
   --name vault-admin-test \
   -e VAULT_ADDR=http://vault-test:8200 \
   -e VAULT_TOKEN=${ROOT_VAULT_TOKEN} \
-  -e CONFIGURATION_PATH=/config \
+  -e CONFIGURATION_PATH=/vault-admin/examples \
   --network vault-admin-test \
-  -v $(pwd)/../examples:/config \
-  -v $(pwd)/../:/go/src/github.com/PremiereGlobal/vault-admin \
-  -w /go/src/github.com/PremiereGlobal/vault-admin \
-  golang:1.10.2-alpine go run *.go
+  -v $(pwd)/../:/vault-admin \
+  -w /vault-admin \
+  golang:1.12-alpine go run -mod=vendor ./...
