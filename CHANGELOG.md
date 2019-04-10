@@ -1,3 +1,11 @@
+## 0.0.6
+
+FIXED:
+* Issue with AWS secret backend when setting a role using `policy_arns` without a `raw_policy` or `policy_document` where the role would end up in a bad state
+
+OTHER:
+* Refactored to use go modules (go 1.12)
+
 ## 0.0.5
 
 **BREAKING CHANGES:**
