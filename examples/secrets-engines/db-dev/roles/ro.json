@@ -1,0 +1,6 @@
+{
+  "creation_statements": "CREATE USER '{{name}}'@'%' IDENTIFIED BY '{{password}}';GRANT SELECT ON *.* TO '{{name}}'@'%';",
+  "db_name": "db",
+  "default_ttl": "2h",
+  "max_ttl": "720h"
+}

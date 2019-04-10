@@ -1,6 +1,6 @@
 {
-  "type": "database",
-  "description": "Mount for database secret backend",
+  "type": "aws",
+  "description": "Mount for AWS account secret backend",
   "config": {
     "default_lease_ttl": "1h",
     "max_lease_ttl": "720h"

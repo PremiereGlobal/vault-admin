@@ -1,8 +1,26 @@
 ## 0.0.5
 
+**BREAKING CHANGES:**
+* Due to the addition of policy ARNs in AWS secret backend roles, the format of the role configs have changed.  Policies using raw definitions must now be specified like so:
 
+```
+{
+  "credential_type": "iam_user",
+  "raw_policy": {
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "*",
+            "Resource": "*"
+        }
+    ]
+  }
+}
+```
 
 IMPROVEMENTS:
+* AWS secrets engine roles can now be configured with policy arns as well as raw policy docs
 * Fixed fatal errors when certain configs didn't exist (audit_methods, secrets_engines, etc.)
 
 OTHER:

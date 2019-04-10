@@ -1,0 +1,10 @@
+{
+  "root_config": {
+    "access_key": "heresmyaccesskey",
+    "secret_key": "heresmysecretkey"
+  },
+  "config_lease": {
+    "lease": "1h",
+    "lease_max": "720h"
+  }
+}

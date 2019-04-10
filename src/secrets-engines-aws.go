@@ -5,12 +5,13 @@ import (
   "encoding/json"
   "path/filepath"
   log "github.com/Sirupsen/logrus"
+  "time"
 )
 
 type SecretsEngineAWS struct {
   RootConfig AwsRootConfig `json:"root_config"`
   ConfigLease AwsConfigLease `json:"config_lease"`
-  Roles map[string]AwsRole
+  Roles map[string]awsRoleEntry
 }
 
 type AwsRootConfig struct {
@@ -27,8 +28,14 @@ type AwsConfigLease struct {
 	LeaseMax string `json:"lease_max"`
 }
 
-type AwsRole struct {
-  Policy string `json:"policy"`
+type awsRoleEntry struct {
+	CredentialType           string       `json:"credential_type"`               // Entries must all be in the set of ("iam_user", "assumed_role", "federation_token")
+	PolicyArns               []string      `json:"policy_arns,omitempty"`       // ARNs of managed policies to attach to an IAM user
+	RoleArns                 []string      `json:"role_arns,omitempty"`         // ARNs of roles to assume for AssumedRole credentials
+	PolicyDocument           string        `json:"policy_document,omitempty"`   // JSON-serialized inline policy to attach to IAM users and/or to specify as the Policy parameter in AssumeRole calls
+  RawPolicy                interface{}   `json:"raw_policy,omitempty"`        // Custom field to allow policy to be entered as json as opposed to having to escape it
+	DefaultSTSTTL            time.Duration `json:"default_sts_ttl,omitempty"`   // Default TTL for STS credentials
+	MaxSTSTTL                time.Duration `json:"max_sts_ttl,omitempty"`       // Max allowed TTL for STS credentials
 }
 
 func ConfigureAwsSecretsEngine(secretsEngine SecretsEngine) {
@@ -92,7 +99,7 @@ func ConfigureAwsSecretsEngine(secretsEngine SecretsEngine) {
 
 func getAwsRoles(secretsEngine *SecretsEngine, secretsEngineAWS *SecretsEngineAWS) {
 
-  secretsEngineAWS.Roles = make(map[string]AwsRole)
+  secretsEngineAWS.Roles = make(map[string]awsRoleEntry)
 
   files, err := ioutil.ReadDir(Spec.ConfigurationPath+"/secrets-engines/"+secretsEngine.Path+"roles")
 	if err != nil {
@@ -103,11 +110,23 @@ func getAwsRoles(secretsEngine *SecretsEngine, secretsEngineAWS *SecretsEngineAW
 
     success, content := getJsonFile(Spec.ConfigurationPath+"/secrets-engines/"+secretsEngine.Path+"roles/"+file.Name())
     if success {
-      var r AwsRole
+      var r awsRoleEntry
 
       filename := file.Name()
       role_name := filename[0:len(filename)-len(filepath.Ext(filename))]
-      r.Policy = content
+      err = json.Unmarshal([]byte(content), &r)
+      if err != nil {
+          log.Fatal("Error parsing role policy  [" + secretsEngine.Path+"roles/"+role_name + "]", err)
+      }
+
+      // Marshal the raw policy document to a string
+      raw_policy, err := json.Marshal(r.RawPolicy)
+      if err != nil {
+          log.Fatal("Error parsing raw policy statement in "+file.Name()+" ", err)
+      }
+      r.PolicyDocument = string(raw_policy)
+      r.RawPolicy = nil
+
       secretsEngineAWS.Roles[role_name] = r
 
     } else {

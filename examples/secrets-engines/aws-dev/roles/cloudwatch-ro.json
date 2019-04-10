@@ -1,0 +1,6 @@
+{
+  "credential_type": "iam_user",
+  "policy_arns": [
+      "arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess"
+  ]
+}

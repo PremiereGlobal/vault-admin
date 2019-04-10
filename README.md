@@ -2,12 +2,6 @@
 
 This utility configures Vault audit devices, auth methods, policies and secrets engines by syncing with a set of standard JSON configuration files.
 
-- [Installation](#installation)
-	- [CLI](#cli)
-	- [Docker](#docker)
-- [Options](#options)
-- [Configuration Files](#configuration-files)
-
 ## Installation
 
 This utility can be used via Docker or the CLI.
