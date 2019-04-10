@@ -1,6 +1,6 @@
 #!/bin/sh
 
-. ./.env
+. scripts/.env
 
 VERSION=${1:-master}
 GOOS=${2:-linux}

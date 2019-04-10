@@ -1,6 +1,6 @@
 #!/bin/sh
 
-. ./.env
+. scripts/.env
 
 SOURCE_VERSION=${1:-master}
 PUBLISH_VERSION=${2:-$SOURCE_VERSION}
