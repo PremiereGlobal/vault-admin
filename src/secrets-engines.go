@@ -29,7 +29,7 @@ func SyncSecretsEngines() {
 func GetSecretsEngines(secretsEnginesList SecretsEnginesList) {
   files, err := ioutil.ReadDir(Spec.ConfigurationPath+"/secrets-engines/")
   if err != nil {
-    log.Fatal(err)
+    log.Warn("No secrets engines found: ", err)
   }
 
   for _, file := range files {

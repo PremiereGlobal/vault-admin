@@ -1,8 +1,9 @@
 #!/bin/sh
 
+. ./.env
+
 VERSION=${1:-master}
 GOOS=${2:-linux}
-DOCKER_REPO="readytalk/vault-admin"
 
 # Directory to house our binaries
 mkdir -p bin

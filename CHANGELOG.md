@@ -1,3 +1,13 @@
+## 0.0.5
+
+
+
+IMPROVEMENTS:
+* Fixed fatal errors when certain configs didn't exist (audit_methods, secrets_engines, etc.)
+
+OTHER:
+* Added some testing scripts
+
 ## 0.0.4
 
 FEATURES:

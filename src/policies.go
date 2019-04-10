@@ -26,7 +26,7 @@ func SyncPolicies() {
 func GetPolicies(policyList PolicyList) {
   files, err := ioutil.ReadDir(Spec.ConfigurationPath+"/policies/")
 	if err != nil {
-		log.Fatal(err)
+		log.Warn("No policies found: ", err)
 	}
 
 	for _, file := range files {

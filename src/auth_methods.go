@@ -36,7 +36,7 @@ func SyncAuthMethods() {
 func GetAuthMethods(authMethodList AuthMethodList) {
   files, err := ioutil.ReadDir(Spec.ConfigurationPath+"/auth_methods/")
 	if err != nil {
-		log.Fatal(err)
+		log.Warn("No auth methods found: ", err)
 	}
 
 	for _, file := range files {

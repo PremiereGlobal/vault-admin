@@ -30,7 +30,8 @@ func SyncAuditDevices() {
 func GetAuditDevices(auditDeviceList AuditDeviceList) {
   files, err := ioutil.ReadDir(Spec.ConfigurationPath+"/audit_devices/")
 	if err != nil {
-		log.Fatal(err)
+		log.Warn("No audit devices found: ", err)
+    return
 	}
 
 	for _, file := range files {
