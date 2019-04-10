@@ -23,6 +23,6 @@ docker run \
   -e CONFIGURATION_PATH=/config \
   --network vault-admin-test \
   -v $(pwd)/../examples:/config \
-  -v $(pwd)/../src:/go/src/github.com/readytalk/vault-admin \
-  -w /go/src/github.com/readytalk/vault-admin \
+  -v $(pwd)/../:/go/src/github.com/PremiereGlobal/vault-admin \
+  -w /go/src/github.com/PremiereGlobal/vault-admin \
   golang:1.10.2-alpine go run *.go

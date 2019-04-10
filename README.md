@@ -1,4 +1,4 @@
-# Vault Admin [![Build Status](https://travis-ci.org/ReadyTalk/vault-admin.svg?branch=master)](https://travis-ci.org/ReadyTalk/vault-admin)
+# Vault Admin [![Build Status](https://travis-ci.org/PremiereGlobal/vault-admin.svg?branch=master)](https://travis-ci.org/PremiereGlobal/vault-admin)
 
 This utility configures Vault audit devices, auth methods, policies and secrets engines by syncing with a set of standard JSON configuration files.
 
@@ -7,7 +7,7 @@ This utility configures Vault audit devices, auth methods, policies and secrets 
 This utility can be used via Docker or the CLI.
 
 ### CLI
-Download and extract the latest binary for your OS on the [releases page](https://github.com/ReadyTalk/vault-admin/releases)
+Download and extract the latest binary for your OS on the [releases page](https://github.com/PremiereGlobal/vault-admin/releases)
 
 Run `./vadmin <flags>`.  See below for a description of the command line flags.
 
@@ -21,7 +21,7 @@ docker run \
 	-e VAULT_ADDR=https://vault.mysite.com:8200 \
 	-e VAULT_TOKEN=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx \
 	-v $(pwd)/config:/config
-	readytalk/vault-admin:latest
+	premiereglobal/vault-admin:latest
 ```
 
 Map wherever you have your Vault configuration files to `/config` within the container.

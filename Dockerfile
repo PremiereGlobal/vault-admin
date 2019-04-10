@@ -1,12 +1,12 @@
-FROM golang:1.10.2-alpine as builder
+FROM golang:1.12-alpine as builder
 
 ARG VERSION=master
 ARG GOOS=linux
 
-WORKDIR /go/src/github.com/readytalk/vault-admin/
-COPY src/ .
+WORKDIR /vault-admin/
+COPY . .
 
-RUN CGO_ENABLED=0 GOOS=${GOOS} go build -ldflags "-X main.version=${VERSION}" -v -a -o vadmin .
+RUN CGO_ENABLED=0 GOOS=${GOOS} go build -mod=vendor -ldflags "-X main.version=${VERSION}" -v -a -o vadmin .
 
 CMD ["/bin/sh", "-c", "vadmin"]
 
@@ -18,6 +18,6 @@ RUN apk --no-cache add ca-certificates
 
 ENV CONFIGURATION_PATH=/config
 
-COPY --from=builder /go/src/github.com/readytalk/vault-admin/ /usr/bin
+COPY --from=builder /vault-admin/vadmin /usr/bin
 
 CMD ["vadmin"]
