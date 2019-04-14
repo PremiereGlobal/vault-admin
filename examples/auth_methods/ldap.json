@@ -22,15 +22,17 @@
     "userattr": "samaccountname",
     "userdn": "ou=Users,dc=example,dc=com"
   },
-  "policy_map": {
-    "developers": [
-      "ldap-group-developers"
-    ],
-    "qa": [
-      "ldap-group-qa"
-    ],
-    "sre": [
-      "ldap-group-sre"
-    ]
+  "additional_config": {
+    "policy_map": {
+      "developers": [
+        "ldap-group-developers"
+      ],
+      "qa": [
+        "ldap-group-qa"
+      ],
+      "sre": [
+        "ldap-group-sre"
+      ]
+    }    
   }
 }

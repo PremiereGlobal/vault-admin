@@ -73,7 +73,7 @@ func ConfigureAuditDevices(auditDeviceList AuditDeviceList) {
 		if _, ok := existingDevices[mountPath]; ok {
 			if existingDevices[mountPath].Type != auditDevice.Type || !reflect.DeepEqual(existingDevices[mountPath].Options, auditDevice.Options) || existingDevices[mountPath].Description != auditDevice.Description {
 				log.Info("Audit device [" + mountPath + "] exists but doesn't match configuration.  Must recreate to update.")
-				if askForConfirmation("Recreate audit device [" + mountPath + "] to reconfigure [y/n]?: ") {
+				if askForConfirmation("Recreate audit device [" + mountPath + "] to reconfigure [y/n]?: ", 3) {
 					err := VaultSys.DisableAudit(mountPath)
 					if err != nil {
 						log.Fatal("Error deleting audit device ["+mountPath+"]", err)
@@ -109,7 +109,7 @@ func CleanupAuditDevices(auditDeviceList AuditDeviceList) {
 			log.Debug("Audit device [" + mountPath + "] exists in configuration, no cleanup necessary")
 		} else {
 			log.Info("Audit device [" + mountPath + "] does not exist in configuration, prompting to delete")
-			if askForConfirmation("Delete audit device [" + mountPath + "] [y/n]?: ") {
+			if askForConfirmation("Delete audit device [" + mountPath + "] [y/n]?: ", 3) {
 				err := VaultSys.DisableAudit(mountPath)
 				if err != nil {
 					log.Fatal("Error deleting audit device ["+mountPath+"]", err)

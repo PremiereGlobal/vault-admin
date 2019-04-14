@@ -18,9 +18,11 @@ docker network create vault-admin-test > /dev/null 2>&1
 # Run our code
 docker run \
   --name vault-admin-test \
+  -it \
   -e VAULT_ADDR=http://vault-test:8200 \
   -e VAULT_TOKEN=${ROOT_VAULT_TOKEN} \
   -e CONFIGURATION_PATH=/vault-admin/examples \
+  -e DEBUG=true \
   --network vault-admin-test \
   -v $(pwd)/../:/vault-admin \
   -w /vault-admin \

@@ -163,22 +163,27 @@ func isJSON(s string) bool {
 	return json.Unmarshal([]byte(s), &js) == nil
 }
 
-func askForConfirmation(msg string) bool {
+func askForConfirmation(msg string, max int) bool {
 
-	var response string
-	fmt.Print(msg)
-	_, err := fmt.Scanln(&response)
-	if err != nil {
-		log.Debug(err)
-		return askForConfirmation(msg)
+	if max > 0 {
+		var response string
+		fmt.Print(msg)
+		_, err := fmt.Scanln(&response)
+		if err != nil {
+			log.Debug(err)
+			return askForConfirmation(msg, max-1)
+		}
+
+		if strings.ToLower(string(response[0])) == "y" {
+			return true
+		} else if strings.ToLower(string(response[0])) == "n" {
+			return false
+		} else {
+			fmt.Println("Invalid response.")
+			return askForConfirmation(msg, max-1)
+		}
 	}
 
-	if strings.ToLower(string(response[0])) == "y" {
-		return true
-	} else if strings.ToLower(string(response[0])) == "n" {
-		return false
-	} else {
-		fmt.Println("Invalid response.")
-		return askForConfirmation(msg)
-	}
+	log.Warning("Max number of invalid confirmations reached, exiting with 'n' response")
+	return false
 }

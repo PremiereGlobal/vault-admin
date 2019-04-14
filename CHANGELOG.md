@@ -1,3 +1,32 @@
+## 0.1.0
+
+**BREAKING CHANGES:**
+* The format of `auth_methods` has changed slightly to allow for a more generic configuration for all auth types.  The  `auth_options` and `config` top-level keys have not changed but all additional config has been brought down a level into the `additional_config` section. See the [auth_method examples](examples/auth_method) for details.
+
+```
+{
+  "auth_options": {
+    ...
+  },
+  "config": {
+    ...
+  },
+  "additional_config": {
+    "policy_map": {
+      ...
+    }
+  }
+}
+```
+
+FEATURE:
+* Userpass Auth method now supported. See [examples](examples/) for syntax.
+* Entities and Entity Groups now supported.  See [examples](examples/) for syntax.
+
+FIXED:
+* Issue where debug logging would expose the Vault token being used
+* Infinite loop when prompting if a non-interactive terminal is being used
+
 ## 0.0.6
 
 FIXED:

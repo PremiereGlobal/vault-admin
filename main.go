@@ -79,15 +79,18 @@ func main() {
 	setDefault(&Spec)
 	checkRequired(&Spec)
 
-	// Print Spec configuration if debugging
-	log.Debug(fmt.Sprintf("%+v", Spec))
-
 	// Configure new Vault Client
 	conf := &VaultApi.Config{Address: Spec.VaultAddress}
 	tlsConf := &VaultApi.TLSConfig{Insecure: Spec.VaultSkipVerify}
 	conf.ConfigureTLS(tlsConf)
 	VaultClient, _ = VaultApi.NewClient(conf)
 	VaultClient.SetToken(Spec.VaultToken)
+
+	// Unset the VaultToken after we've used it
+	Spec.VaultToken = ""
+
+	// Print Spec configuration if debugging
+	log.Debug(fmt.Sprintf("%+v", Spec))
 
 	// Define a Logical Vault client (to read/write values)
 	Vault = VaultClient.Logical()
@@ -98,10 +101,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Error connecting to Vault: ", err)
 	}
-	log.Debug("Initialized: ", health.Initialized)
-	log.Debug("Sealed: ", health.Sealed)
-	log.Debug("Standby: ", health.Standby)
-	log.Debug("Version: ", health.Version)
+	log.Debug("Vault Health: ", fmt.Sprintf("%+v", health))
 
 	// Call sync methods
 	SyncAuditDevices()

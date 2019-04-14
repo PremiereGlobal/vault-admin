@@ -1,0 +1,39 @@
+{
+  "auth_options": {
+    "type": "userpass",
+    "config": {
+      "default_lease_ttl": "600s",
+      "max_lease_ttl": "2h"
+    },
+    "description": "Vault authentication with userpass"
+  },
+  "additional_config": {
+    "users": [
+      {
+        "username": "userA",
+        "password": "test",
+        "policies": "default, foo, bar",
+        "ttl": "601s",
+        "max_ttl": "2h",
+        "bound_cidrs": [
+          "192.168.0.0/16"
+        ]
+      },
+      {
+        "username": "userB",
+        "password": "test",
+        "policies": "default, foo, bar"
+      },
+      {
+        "username": "userC",
+        "password": "test",
+        "policies": "default, foo, bar"
+      },
+      {
+        "username": "userD",
+        "password": "test",
+        "policies": "default, foo, bar"
+      }
+    ]
+  }
+}

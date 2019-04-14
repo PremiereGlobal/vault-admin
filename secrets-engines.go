@@ -108,7 +108,7 @@ func CleanupSecretsEngines(secretsEnginesList SecretsEnginesList) {
 				log.Debug("Secrets engine [" + path + "] exists in configuration, no cleanup necessary")
 			} else {
 				log.Debug("Secrets engine [" + path + "] does not exist in configuration, prompting to delete")
-				if askForConfirmation("Secrets engine [" + path + "] does not exist in configuration. Delete [y/n]?: ") {
+				if askForConfirmation("Secrets engine [" + path + "] does not exist in configuration. Delete [y/n]?: ", 3) {
 					err := VaultSys.Unmount(path)
 					if err != nil {
 						log.Fatal("Error deleting mount ", path, err)

@@ -1,5 +1,7 @@
 # github.com/Sirupsen/logrus v1.0.6
 github.com/Sirupsen/logrus
+# github.com/davecgh/go-spew v1.1.1
+github.com/davecgh/go-spew/spew
 # github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db
 github.com/golang/snappy
 # github.com/hashicorp/errwrap v1.0.0
@@ -24,7 +26,7 @@ github.com/hashicorp/hcl/hcl/scanner
 github.com/hashicorp/hcl/hcl/strconv
 github.com/hashicorp/hcl/json/scanner
 github.com/hashicorp/hcl/json/token
-# github.com/hashicorp/vault v0.11.1
+# github.com/hashicorp/vault v1.0.0
 github.com/hashicorp/vault/api
 github.com/hashicorp/vault/helper/consts
 github.com/hashicorp/vault/helper/hclutil
@@ -40,6 +42,9 @@ github.com/kelseyhightower/envconfig
 github.com/mitchellh/go-homedir
 # github.com/mitchellh/mapstructure v1.0.0
 github.com/mitchellh/mapstructure
+# github.com/pierrec/lz4 v2.0.5+incompatible
+github.com/pierrec/lz4
+github.com/pierrec/lz4/internal/xxh32
 # github.com/ryanuber/go-glob v0.0.0-20160226084822-572520ed46db
 github.com/ryanuber/go-glob
 # golang.org/x/crypto v0.0.0-20180910181607-0e37d006457b
