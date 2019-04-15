@@ -1,0 +1,14 @@
+{
+  "group": {
+    "name": "sre",
+    "metadata": {
+      "group-1": "test"
+    },
+    "policies": [
+
+    ],
+    "member_entity_names": [
+      "userb"
+    ]
+  }
+}

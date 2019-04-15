@@ -38,18 +38,22 @@ func GetSecretsEngines(secretsEnginesList SecretsEnginesList) {
 			se.Name = file.Name()
 			se.Path = file.Name() + "/"
 
-			content, err := ioutil.ReadFile(Spec.ConfigurationPath + "/secrets-engines/" + file.Name() + "/config.json")
-			if err != nil {
-				log.Fatal("Config file for secret engine ["+se.Path+"] not found. ", err)
-			}
+			// Identity store doesn't have any configure as it is enabled by default
+			if se.Name != "identity" {
 
-			if !isJSON(string(content)) {
-				log.Fatal("Secret engine config.json for [" + se.Path + "] is not a valid JSON file.")
-			}
+				content, err := ioutil.ReadFile(Spec.ConfigurationPath + "/secrets-engines/" + file.Name() + "/config.json")
+				if err != nil {
+					log.Fatal("Config file for secret engine ["+se.Path+"] not found. ", err)
+				}
 
-			err = json.Unmarshal([]byte(content), &se.MountInput)
-			if err != nil {
-				log.Fatal("Error parsing secret backend config for [" + se.Path + "]")
+				if !isJSON(string(content)) {
+					log.Fatal("Secret engine config.json for [" + se.Path + "] is not a valid JSON file.")
+				}
+
+				err = json.Unmarshal([]byte(content), &se.MountInput)
+				if err != nil {
+					log.Fatal("Error parsing secret backend config for [" + se.Path + "]")
+				}
 			}
 
 			secretsEnginesList[se.Path] = se
@@ -63,18 +67,22 @@ func ConfigureSecretsEngines(secretsEnginesList SecretsEnginesList) {
 		// Check if mount is enabled
 		existing_mounts, _ := VaultSys.ListMounts()
 		if _, ok := existing_mounts[secretsEngine.Path]; ok {
-			if existing_mounts[secretsEngine.Path].Type != secretsEngine.MountInput.Type {
-				log.Fatal("Secrets engine path ["+secretsEngine.Path+"] exists but doesn't match type; ", existing_mounts[secretsEngine.Path].Type, "!=", secretsEngine.MountInput.Type)
-			}
-			log.Debug("Secrets engine path [" + secretsEngine.Path + "] already enabled and type matches, tuning for any updates")
 
-			// Update the MountConfigInput description to match the MountInput description
-			// This is needed because of the way creating new mounts differs from existing ones?
-			secretsEngine.MountInput.Config.Description = &secretsEngine.MountInput.Description
+			// We don't need to do any setup for identity backend
+			if secretsEngine.Path != "identity/" {
+				if existing_mounts[secretsEngine.Path].Type != secretsEngine.MountInput.Type {
+					log.Fatal("Secrets engine path ["+secretsEngine.Path+"] exists but doesn't match type; ", existing_mounts[secretsEngine.Path].Type, "!=", secretsEngine.MountInput.Type)
+				}
+				log.Debug("Secrets engine path [" + secretsEngine.Path + "] already enabled and type matches, tuning for any updates")
 
-			err := VaultSys.TuneMount(secretsEngine.Path, secretsEngine.MountInput.Config)
-			if err != nil {
-				log.Fatal("Error tuning secrets engine path ["+secretsEngine.Path+"]", err)
+				// Update the MountConfigInput description to match the MountInput description
+				// This is needed because of the way creating new mounts differs from existing ones?
+				secretsEngine.MountInput.Config.Description = &secretsEngine.MountInput.Description
+
+				err := VaultSys.TuneMount(secretsEngine.Path, secretsEngine.MountInput.Config)
+				if err != nil {
+					log.Fatal("Error tuning secrets engine path ["+secretsEngine.Path+"]", err)
+				}
 			}
 		} else {
 			log.Debug("Secrets engine path [" + secretsEngine.Path + "] is not enabled, enabling")
@@ -85,7 +93,10 @@ func ConfigureSecretsEngines(secretsEnginesList SecretsEnginesList) {
 			log.Info("Secrets engine type [" + secretsEngine.MountInput.Type + "] enabled at [" + secretsEngine.Path + "]")
 		}
 
-		if secretsEngine.MountInput.Type == "aws" {
+		if secretsEngine.Path == "identity/" {
+			log.Info("Configuring Identity backend ", secretsEngine.Path)
+			configureIdentitySecretsEngine(secretsEngine)
+		} else if secretsEngine.MountInput.Type == "aws" {
 			log.Info("Configuring AWS backend ", secretsEngine.Path)
 			ConfigureAwsSecretsEngine(secretsEngine)
 		} else if secretsEngine.MountInput.Type == "database" {
@@ -108,7 +119,7 @@ func CleanupSecretsEngines(secretsEnginesList SecretsEnginesList) {
 				log.Debug("Secrets engine [" + path + "] exists in configuration, no cleanup necessary")
 			} else {
 				log.Debug("Secrets engine [" + path + "] does not exist in configuration, prompting to delete")
-				if askForConfirmation("Secrets engine [" + path + "] does not exist in configuration. Delete [y/n]?: ", 3) {
+				if askForConfirmation("Secrets engine ["+path+"] does not exist in configuration. Delete [y/n]?: ", 3) {
 					err := VaultSys.Unmount(path)
 					if err != nil {
 						log.Fatal("Error deleting mount ", path, err)

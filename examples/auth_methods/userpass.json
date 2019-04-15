@@ -12,7 +12,7 @@
       {
         "username": "userA",
         "password": "test",
-        "policies": "default, foo, bar",
+        "policies": "default, group-qa",
         "ttl": "601s",
         "max_ttl": "2h",
         "bound_cidrs": [
@@ -22,17 +22,17 @@
       {
         "username": "userB",
         "password": "test",
-        "policies": "default, foo, bar"
+        "policies": "default, group-developers"
       },
       {
         "username": "userC",
         "password": "test",
-        "policies": "default, foo, bar"
+        "policies": "default, vault-admin"
       },
       {
         "username": "userD",
         "password": "test",
-        "policies": "default, foo, bar"
+        "policies": "default, group-sre"
       }
     ]
   }

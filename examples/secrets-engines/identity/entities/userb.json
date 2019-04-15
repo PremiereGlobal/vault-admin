@@ -1,0 +1,21 @@
+{
+  "entity": {
+    "metadata": {
+      "test1": "testing"
+    },
+    "policies": [
+      "group-default"
+    ],
+    "disabled": false
+  },
+  "entity-aliases": [
+    {
+      "name": "usera",
+      "mount_path": "userpass/"
+    },
+    {
+      "name": "userb",
+      "mount_path": "userpass/"
+    }
+  ]
+}
