@@ -25,9 +25,21 @@
         "policies": "default, group-developers"
       },
       {
-        "username": "userC",
+        "username": "userb1",
+        "password": "test"
+      },
+      {
+        "username": "userb2",
+        "password": "test"
+      },
+      {
+        "username": "userc",
         "password": "test",
         "policies": "default, vault-admin"
+      },
+      {
+        "username": "userc2",
+        "password": "test"
       },
       {
         "username": "userD",

@@ -3,10 +3,10 @@ package main
 import (
 	"encoding/json"
 	log "github.com/Sirupsen/logrus"
+	// "github.com/davecgh/go-spew/spew"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
-	// "github.com/davecgh/go-spew/spew"
 )
 
 type EntityConfig struct {
@@ -15,14 +15,28 @@ type EntityConfig struct {
 }
 
 type EntityAlias struct {
-	Name          string `json:"name"`
-	MountPath     string `json:"mount_path"`
-	MountAccessor string `json:"mount_accessor"`
+	Name          string `json:"name,omitempty"`
+	MountPath     string `json:"mount_path,omitempty"`
+	MountAccessor string `json:"mount_accessor,omitempty"`
+	CanonicalID   string `json:"canonical_id,omitempty"`
+	MountType     string `json:"mount_type,omitempty"`
 }
 
 func configureIdentitySecretsEngine(secretsEngine SecretsEngine) {
 
 	entityList := make(map[string]string)
+	entityAliasList := make(map[string]EntityAlias)
+	aliasData, err := getSecretListData(secretsEngine.Path + "entity-alias/id")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	jsondata, err := json.Marshal(aliasData)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = json.Unmarshal(jsondata, &entityAliasList)
 
 	files, err := ioutil.ReadDir(Spec.ConfigurationPath + "/secrets-engines/" + secretsEngine.Path + "entities")
 	if err != nil {
@@ -49,6 +63,37 @@ func configureIdentitySecretsEngine(secretsEngine SecretsEngine) {
 			}
 			entityList[entity_name] = entity_name
 
+			entityData, err := Vault.Read("/identity/entity/name/" + entity_name)
+			if err != nil {
+				log.Fatal("Error getting CanonicalID for entity ", entity_name, err)
+			}
+			entityID := entityData.Data["id"].(string)
+
+			// Create the EntityAlias
+			// Mount + Alias has to be unique so we need to check if the Alias already
+			// exists before creating it, if not do an update.  There currently
+			// is no upsert available
+			for _, aliasConfig := range config.EntityAliases {
+				aliasConfig.MountAccessor = LookupAuthMountAccessor(aliasConfig.MountPath)
+				aliasConfig.CanonicalID = entityID
+
+				// See if this alias already exists
+				id := getAliasId(aliasConfig.Name, aliasConfig.MountAccessor, &entityAliasList)
+				if id != "" {
+					log.Debug("Alias " + id + " found for [" + aliasConfig.Name + ", " + aliasConfig.MountAccessor + "], updating...")
+					err := writeStructToVault("/identity/entity-alias/id/"+id, aliasConfig)
+					if err != nil {
+						log.Fatal("Error writing entity alias ", aliasConfig.Name, err)
+					}
+				} else {
+					log.Debug("Alias not found for [" + aliasConfig.Name + ", " + aliasConfig.MountAccessor + "], creating...")
+					err := writeStructToVault("/identity/entity-alias", aliasConfig)
+					if err != nil {
+						log.Fatal("Error writing entity alias ", aliasConfig.Name, err)
+					}
+				}
+			}
+
 		} else {
 			log.Warn("Identity entity file has wrong extension.  Will not be processed: ", file.Name())
 		}
@@ -56,6 +101,15 @@ func configureIdentitySecretsEngine(secretsEngine SecretsEngine) {
 
 	// Cleanup Entities
 	cleanupEntities(secretsEngine, entityList)
+}
+
+func getAliasId(name string, mountAccessor string, entityAliasList *map[string]EntityAlias) string {
+	for aliasID, alias := range *entityAliasList {
+		if alias.Name == name && alias.MountAccessor == mountAccessor {
+			return aliasID
+		}
+	}
+	return ""
 }
 
 func cleanupEntities(secretsEngine SecretsEngine, entityList map[string]string) {

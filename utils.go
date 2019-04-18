@@ -2,12 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"io/ioutil"
 	"path/filepath"
 	"regexp"
 	"strings"
+	// "github.com/davecgh/go-spew/spew"
 )
 
 func getJsonFile(path string) (bool, string) {
@@ -53,6 +55,33 @@ func getSecretArray(path string) (bool, map[string]string) {
 	}
 
 	return true, secretArray
+}
+
+func getSecretListData(path string) (map[string]interface{}, error) {
+
+	secretMap := make(map[string]interface{})
+
+	secret, err := Vault.List(path)
+	if err != nil {
+		return nil, err
+	}
+
+	if secret != nil {
+		if _, ok := secret.Data["key_info"]; ok {
+			switch value := secret.Data["key_info"].(type) {
+			case map[string]interface{}:
+				return value, nil
+			default:
+				return nil, errors.New("Secret list failed on [" + path + "], expected map[string]interface {} but got " + fmt.Sprintf("%T", value))
+			}
+		} else {
+			return nil, errors.New("Secret list failed on [" + path + "], no \"key_info\" present")
+		}
+	} else {
+		return nil, nil
+	}
+
+	return secretMap, nil
 }
 
 func getSecretList(path string) (bool, []string) {

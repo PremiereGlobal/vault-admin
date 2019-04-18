@@ -10,15 +10,11 @@
   },
   "entity-aliases": [
     {
-      "name": "userb",
+      "name": "userc",
       "mount_path": "userpass/"
     },
     {
-      "name": "userb1",
-      "mount_path": "userpass/"
-    },
-    {
-      "name": "userb2",
+      "name": "userc1",
       "mount_path": "userpass/"
     }
   ]
