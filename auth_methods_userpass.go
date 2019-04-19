@@ -35,7 +35,7 @@ func userpassAddUsers(path string, userList UserList) {
 		u := data.(map[string]interface{})
 
 		// Write the user config
-		log.Debug("Configuring user " + username)
+    log.Debug("Writing user ["+username+"]...")
 		_, err := Vault.Write("/auth/"+path+"users/"+username, u)
 		if err != nil {
 			log.Fatal("Error writing userpass user", err)

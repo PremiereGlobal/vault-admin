@@ -3,7 +3,8 @@
     "type": "ldap",
     "config": {
       "default_lease_ttl": "2h",
-      "max_lease_ttl": "24h"
+      "max_lease_ttl": "24h",
+      "listing_visibility": "unauth"
     },
     "description": "Vault authentication against LDAP"
   },
@@ -33,6 +34,6 @@
       "sre": [
         "ldap-group-sre"
       ]
-    }    
+    }
   }
 }

@@ -21,7 +21,8 @@
 
 FEATURE:
 * Userpass Auth method now supported. See [examples](examples/) for syntax.
-* Entities and Entity Groups now supported.  See [examples](examples/) for syntax.
+* Identity Entities, EntityAliases and Groups are now supported.  See [examples](examples/) for syntax.
+* Added more extensive debug logging
 
 FIXED:
 * Issue where debug logging would expose the Vault token being used

@@ -40,16 +40,16 @@ func ConfigureDatabaseSecretsEngine(secretsEngine SecretsEngine) {
 
 	// Write db config
 	// TODO: Add support for multiple dbs
-	log.Debug("Writing db config for [" + secretsEngine.Path + "/db]")
+	log.Debug("Writing database config for [" + secretsEngine.Path + "/db]")
 	err = writeStringToVault(secretsEngine.Path+"/config/db", contentstring)
 	if err != nil {
 		log.Fatal("Error writing config for ["+secretsEngine.Path+"/db]", err)
 	}
 
 	// Create/Update Roles
-	log.Debug("Writing roles for [" + secretsEngine.Path + "]")
+	log.Debug("Writing database roles for [" + secretsEngine.Path + "]")
 	for role_name, role := range secretsEngineDatabase.Roles {
-		log.Debug("Writting role [" + role_name + "] to [" + secretsEngine.Path + "]")
+		log.Debug("Writing database role [" + role_name + "] to [" + secretsEngine.Path + "]")
 		err = writeStringToVault(secretsEngine.Path+"roles/"+role_name, role)
 		if err != nil {
 			log.Fatal("Error creating/updating role ["+role_name+"] at ["+secretsEngine.Path+"]", err)

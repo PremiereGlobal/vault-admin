@@ -21,5 +21,9 @@
       "name": "userb2",
       "mount_path": "userpass/"
     }
+  ],
+  "entity-groups": [
+    "sre",
+    "groupx"
   ]
 }

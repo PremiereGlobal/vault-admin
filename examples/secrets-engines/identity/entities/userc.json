@@ -17,5 +17,11 @@
       "name": "userc1",
       "mount_path": "userpass/"
     }
+  ],
+  "entity-groups": [
+    "sre",
+    "groupx",
+    "groupy",
+    "foo"
   ]
 }

@@ -1,0 +1,11 @@
+{
+  "group": {
+    "type": "internal",
+    "metadata": {
+      "description": "This is Group Y"
+    },
+    "policies": [
+      "vault-admin"
+    ]
+  }
+}

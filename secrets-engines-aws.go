@@ -84,9 +84,9 @@ func ConfigureAwsSecretsEngine(secretsEngine SecretsEngine) {
 	}
 
 	// Create/Update Roles
-	log.Debug("Writing roles for [" + secretsEngine.Path + "]")
+	log.Debug("Writing AWS roles for [" + secretsEngine.Path + "]")
 	for role_name, role := range secretsEngineAWS.Roles {
-		log.Debug("Writting role [" + role_name + "] to [" + secretsEngine.Path + "]")
+		log.Debug("Writing AWS role [" + role_name + "] to [" + secretsEngine.Path + "]")
 		err = writeStructToVault(secretsEngine.Path+"roles/"+role_name, role)
 		if err != nil {
 			log.Fatal("Error creating/updating role ["+role_name+"] at ["+secretsEngine.Path+"]", err)

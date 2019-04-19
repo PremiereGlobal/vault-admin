@@ -9,10 +9,10 @@ This utility can be used via Docker or the CLI.
 ### CLI
 Download and extract the latest binary for your OS on the [releases page](https://github.com/PremiereGlobal/vault-admin/releases)
 
-Run `./vadmin <flags>`.  See below for a description of the command line flags.
+Run `vadmin <flags>`.  See below for a description of the command line flags.
 
 ### Docker
-The Docker container must be run in interactive mode with the `-it` because it prompts for things like policy deletion, etc.
+The Docker container must be run in interactive mode with the `-it` parameter because it prompts for things like policy deletion, etc.
 
 ```
 docker run \
@@ -24,7 +24,7 @@ docker run \
 	premiereglobal/vault-admin:latest
 ```
 
-Map wherever you have your Vault configuration files to `/config` within the container.
+Map wherever you have your Vault Admin configuration files to `/config` within the container.
 
 ## Options
 All options can be set via environment variables or command line options

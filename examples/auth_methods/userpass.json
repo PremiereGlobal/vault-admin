@@ -3,7 +3,8 @@
     "type": "userpass",
     "config": {
       "default_lease_ttl": "600s",
-      "max_lease_ttl": "2h"
+      "max_lease_ttl": "2h",
+      "listing_visibility": "unauth"
     },
     "description": "Vault authentication with userpass"
   },
