@@ -76,7 +76,7 @@ func CleanupPolicies(policyList PolicyList) {
 				log.Debug(policy + " exists in configuration, no cleanup necessary")
 			} else {
 				log.Debug(policy + " does not exist in configuration, prompting to delete")
-				if askForConfirmation("Policy [" + policy + "] does not exist in configuration.  Delete policy [" + policy + "] [y/n]?: ", 3) {
+				if askForConfirmation("Policy ["+policy+"] does not exist in configuration.  Delete policy ["+policy+"] [y/n]?: ", 3) {
 					err := VaultSys.DeletePolicy(policy)
 					if err != nil {
 						log.Fatal("Error deleting policy ", policy, err)

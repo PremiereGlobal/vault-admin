@@ -10,9 +10,9 @@ import (
 )
 
 type EntityConfig struct {
-	Entity        map[string]interface{} 	`json:"entity,omitempty"`
-	EntityAliases []EntityAlias          	`json:"entity-aliases,omitempty"`
-	EntityGroups  []string								`json:"entity-groups,omitempty"`
+	Entity        map[string]interface{} `json:"entity,omitempty"`
+	EntityAliases []EntityAlias          `json:"entity-aliases,omitempty"`
+	EntityGroups  []string               `json:"entity-groups,omitempty"`
 }
 
 type EntityAlias struct {
@@ -24,7 +24,7 @@ type EntityAlias struct {
 }
 
 type GroupConfig struct {
-	Group  map[string]interface{}	`json:"group,omitempty"`
+	Group map[string]interface{} `json:"group,omitempty"`
 }
 
 func configureIdentitySecretsEngine(secretsEngine SecretsEngine) {
@@ -65,7 +65,7 @@ func configureIdentitySecretsEngine(secretsEngine SecretsEngine) {
 			}
 
 			// Create/Update the Entity (by Name)
-			log.Debug("Writing identity entity ["+entity_name+"]...")
+			log.Debug("Writing identity entity [" + entity_name + "]...")
 			_, err := Vault.Write("/identity/entity/name/"+entity_name, config.Entity)
 			if err != nil {
 				log.Fatal("Error writing entity ", entity_name, err)
@@ -113,7 +113,7 @@ func configureIdentitySecretsEngine(secretsEngine SecretsEngine) {
 			}
 
 			// Now we need to remove Aliases from Entites if they aren't in the config
-		  existingEntityAliases := getEntityAliases(entityID, &entityAliasList)
+			existingEntityAliases := getEntityAliases(entityID, &entityAliasList)
 			for existingAliasConfigID, existingAliasConfig := range existingEntityAliases {
 				found := false
 				for _, aliasConfig := range config.EntityAliases {
@@ -125,14 +125,14 @@ func configureIdentitySecretsEngine(secretsEngine SecretsEngine) {
 
 				if !found {
 					log.Info("Entity alias " + existingAliasConfig.Name + "[" + existingAliasConfig.MountAccessor + "] on entity " + entity_name + " does not exist in configuration, prompting to delete")
-					if askForConfirmation("Delete entity alias " + existingAliasConfig.Name + "[" + existingAliasConfig.MountAccessor + "] on entity " + entity_name + " [y/n]?: ", 3) {
+					if askForConfirmation("Delete entity alias "+existingAliasConfig.Name+"["+existingAliasConfig.MountAccessor+"] on entity "+entity_name+" [y/n]?: ", 3) {
 						_, err := Vault.Delete(secretsEngine.Path + "entity-alias/id/" + existingAliasConfigID)
 						if err != nil {
 							log.Fatal("Error deleting entity alias ["+existingAliasConfigID+"] ", err)
 						}
-						log.Info("Deleted entity alias " +existingAliasConfig.Name + "[" + existingAliasConfig.MountAccessor + "] on entity " + entity_name)
+						log.Info("Deleted entity alias " + existingAliasConfig.Name + "[" + existingAliasConfig.MountAccessor + "] on entity " + entity_name)
 					} else {
-						log.Info("Leaving entity alias " +existingAliasConfig.Name + "[" + existingAliasConfig.MountAccessor + "] on entity " + entity_name + " even though it is not in config")
+						log.Info("Leaving entity alias " + existingAliasConfig.Name + "[" + existingAliasConfig.MountAccessor + "] on entity " + entity_name + " even though it is not in config")
 					}
 				}
 			}
@@ -176,11 +176,11 @@ func configureIdentityGroups(secretsEngine SecretsEngine, entityGroupList map[st
 			// Add the member entities to the group, if there are no members, warn
 			config.Group["member_entity_ids"] = entityGroupList[groupName]
 			if len(entityGroupList[groupName]) == 0 {
-				log.Warn("Identity group ["+groupName+"] contains no members.  Consider removing it.")
+				log.Warn("Identity group [" + groupName + "] contains no members.  Consider removing it.")
 			}
 
 			// Create/Update the Group (by Name)
-			log.Debug("Writing identity group ["+groupName+"]...")
+			log.Debug("Writing identity group [" + groupName + "]...")
 			_, err := Vault.Write("/identity/group/name/"+groupName, config.Group)
 			if err != nil {
 				log.Fatal("Error writing identity group ", groupName, err)
@@ -204,7 +204,7 @@ func configureIdentityGroups(secretsEngine SecretsEngine, entityGroupList map[st
 		offendingEntities = strings.TrimSuffix(offendingEntities, ",")
 
 		if _, ok := groupList[groupName]; !ok {
-			log.Warn("Identity entities ["+offendingEntities+"] configured for group [" + groupName + "] but group does not exist.  Clean up entity configs.")
+			log.Warn("Identity entities [" + offendingEntities + "] configured for group [" + groupName + "] but group does not exist.  Clean up entity configs.")
 		}
 	}
 }

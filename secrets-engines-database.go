@@ -92,7 +92,7 @@ func cleanupDatabaseRoles(secretsEngine SecretsEngine, secretsEngineDatabase Sec
 				log.Debug("[" + rolePath + "] exists in configuration, no cleanup necessary")
 			} else {
 				log.Debug("[" + rolePath + "] does not exist in configuration, prompting to delete")
-				if askForConfirmation("Role [" + rolePath + "] does not exist in configuration.  Delete [y/n]?: ", 3) {
+				if askForConfirmation("Role ["+rolePath+"] does not exist in configuration.  Delete [y/n]?: ", 3) {
 					_, err := Vault.Delete(rolePath)
 					if err != nil {
 						log.Fatal("Error deleting role ["+rolePath+"]", err)
