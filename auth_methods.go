@@ -9,6 +9,7 @@ import (
 )
 
 type authMethod struct {
+	Name             string
 	Path             string                     `json:"path"`
 	AuthOptions      VaultApi.EnableAuthOptions `json:"auth_options"`
 	Config           map[string]interface{}     `json:"config"`
@@ -49,7 +50,8 @@ func getAuthMethods(authMethodList authMethodList) {
 
 			// Use the filename as the mount path
 			filename := file.Name()
-			m.Path = filename[0:len(filename)-len(filepath.Ext(filename))] + "/"
+			m.Name = filename[0 : len(filename)-len(filepath.Ext(filename))]
+			m.Path = m.Name + "/"
 			err = json.Unmarshal([]byte(content), &m)
 			if err != nil {
 				log.Fatal("Error parsing auth method configuration: ", file.Name(), " ", err)
@@ -93,10 +95,27 @@ func configureAuthMethods(authMethodList authMethodList) {
 
 		// Write the auth configuration (if set)
 		if mount.Config != nil {
-			log.Debug("Writing auth config for ", mount.Path)
-			_, err := Vault.Write("/auth/"+mount.Path+"config", mount.Config)
+
+			// Here we transform to json in order to do string substitution
+			jsondata, err := json.Marshal(mount.Config)
 			if err != nil {
-				log.Fatal("Error writing LDAP config for "+mount.Path+" ", err)
+				log.Fatal(err)
+			}
+			contentstring := string(jsondata)
+			success, errMsg := performSubstitutions(&contentstring, "auth/"+mount.Name)
+			if !success {
+				log.Warn(errMsg)
+				log.Warn("Secret substitution failed for [" + mount.Path + "], skipping auth method configuration")
+				return
+			} else {
+				if !isJSON(contentstring) {
+					log.Fatal("Auth engine [" + mount.Path + "] is not a valid JSON after secret substitution")
+				}
+				log.Debug("Writing auth config for ", mount.Path)
+				err = writeStringToVault("/auth/"+mount.Path+"config", contentstring)
+				if err != nil {
+					log.Fatal("Error writing LDAP config for "+mount.Path+" ", err)
+				}
 			}
 		}
 
