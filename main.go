@@ -17,6 +17,7 @@ type Specification struct {
 	VaultToken          string `envconfig:"VAULT_TOKEN" short:"t" long:"vault-token" description:"Vault token to use, otherwise will prompt for LDAP credentials"`
 	VaultSkipVerify     bool   `envconfig:"VAULT_SKIP_VERIFY" short:"K" long:"skip-verify" description:"Skip Vault TLS certificate verification"`
 	VaultSecretBasePath string `envconfig:"VAULT_SECRET_BASE_PATH" short:"s" long:"vault-secret-base-path" description:"Base secret path, in Vault, to pull secrets for substitution" vdefault:"secret/vault-admin/"`
+	RotateCreds         bool   `short:"r" long:"rotate-creds" description:"Rotates AWS root credentials" vdefault:"false"`
 	Debug               bool   `envconfig:"DEBUG" short:"d" long:"debug" description:"Turn on debug logging"`
 	Version             bool   `short:"v" long:"version" description:"Display the version of the tool"`
 	CurrentVersion      string
@@ -103,11 +104,15 @@ func main() {
 	}
 	log.Debug("Vault Health: ", fmt.Sprintf("%+v", health))
 
-	// Call sync methods
-	SyncAuditDevices()
-	SyncAuthMethods()
-	SyncPolicies()
-	SyncSecretsEngines()
+	if Spec.RotateCreds {
+		RotateCreds()
+	} else {
+		// Call sync methods
+		SyncAuditDevices()
+		SyncAuthMethods()
+		SyncPolicies()
+		SyncSecretsEngines()
+	}
 
 	log.Info("Done")
 }

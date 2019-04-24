@@ -16,5 +16,5 @@ docker run \
   -p 8200:8200 \
   -e VAULT_ADDR=http://127.0.0.1:8200 \
   --network vault-admin-test \
-  vault:1.1.1 server -dev
+  vault:1.1.1 server -dev-kv-v1
 

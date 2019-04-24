@@ -5,18 +5,20 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"io/ioutil"
 	"path/filepath"
+	"strconv"
 	"time"
 )
 
 type SecretsEngineAWS struct {
-	RootConfig  AwsRootConfig  `json:"root_config"`
-	ConfigLease AwsConfigLease `json:"config_lease"`
-	Roles       map[string]awsRoleEntry
+	RootConfig               AwsRootConfig  `json:"root_config"`
+	OverwriteRootCredentials bool           `json:"overwrite_root_config"`
+	ConfigLease              AwsConfigLease `json:"config_lease"`
+	Roles                    map[string]awsRoleEntry
 }
 
 type AwsRootConfig struct {
-	AccessKey   string `json:"access_key"`
-	SecretKey   string `json:"secret_key"`
+	AccessKey   string `json:"access_key,omitempty"`
+	SecretKey   string `json:"secret_key,omitempty"`
 	IAMEndpoint string `json:"iam_endpoint"`
 	STSEndpoint string `json:"sts_endpoint"`
 	Region      string `json:"region"`
@@ -70,10 +72,16 @@ func ConfigureAwsSecretsEngine(secretsEngine SecretsEngine) {
 	getAwsRoles(&secretsEngine, &secretsEngineAWS)
 
 	// Write root config
-	log.Debug("Writing root config for [" + secretsEngine.Path + "]")
-	err = writeStructToVault(secretsEngine.Path+"/config/root", secretsEngineAWS.RootConfig)
-	if err != nil {
-		log.Fatal("Error writing root config for ["+secretsEngine.Path+"]", err)
+	// Only write the root config if this is the first time setting up the engine
+	// or if the overwrite_root_config flag is set
+	if secretsEngine.JustEnabled == true || secretsEngineAWS.OverwriteRootCredentials == true {
+		log.Debug("Writing root config for [" + secretsEngine.Path + "]. JustEnabled=" + strconv.FormatBool(secretsEngine.JustEnabled) + ", OverwriteRootCredentials=" + strconv.FormatBool(secretsEngineAWS.OverwriteRootCredentials))
+		err = writeStructToVault(secretsEngine.Path+"/config/root", secretsEngineAWS.RootConfig)
+		if err != nil {
+			log.Fatal("Error writing root config for ["+secretsEngine.Path+"]", err)
+		}
+	} else {
+		log.Debug("Root config exists for [" + secretsEngine.Path + "], skipping...")
 	}
 
 	// Write config lease

@@ -12,6 +12,7 @@ type SecretsEngine struct {
 	Path         string
 	MountInput   VaultApi.MountInput
 	EngineConfig interface{}
+	JustEnabled  bool // Flagged the first time a mount gets enabled
 }
 
 type SecretsEnginesList map[string]SecretsEngine
@@ -91,6 +92,7 @@ func ConfigureSecretsEngines(secretsEnginesList SecretsEnginesList) {
 				log.Fatal("Error mounting secret type ["+secretsEngine.MountInput.Type+"] mounted at ["+secretsEngine.Path+"]; ", err)
 			}
 			log.Info("Secrets engine type [" + secretsEngine.MountInput.Type + "] enabled at [" + secretsEngine.Path + "]")
+			secretsEngine.JustEnabled = true
 		}
 
 		if secretsEngine.Path == "identity/" {

@@ -1,3 +1,16 @@
+## 0.3.0
+
+FEATURES:
+* Added `--rotate-creds` flag for rotating secret engine credentials (currently just AWS supported)
+
+IMPROVEMENTS:
+* Added top-level `overwrite_root_config` parameter for AWS secret backend configs `aws.json`.  This will force an overwrite of the root config.  The default behavior will be to leave the root credentials alone if the mount already exists.  This will allow AWS keys to be rotated.
+
+## 0.2.0
+
+FEATURE:
+* Added string substitution for auth methods
+
 ## 0.1.0
 
 **BREAKING CHANGES:**
@@ -19,7 +32,7 @@
 }
 ```
 
-FEATURE:
+FEATURES:
 * Userpass Auth method now supported. See [examples](examples/) for syntax.
 * Identity Entities, EntityAliases and Groups are now supported.  See [examples](examples/) for syntax.
 * Added more extensive debug logging

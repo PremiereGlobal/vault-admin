@@ -3,6 +3,7 @@
     "access_key": "%{AWS_ACCESS_KEY_ID}%",
     "secret_key": "%{AWS_SECRET_ACCESS_KEY}%"
   },
+  "overwrite_root_config": false,
   "config_lease": {
     "lease": "30m",
     "lease_max": "720h"

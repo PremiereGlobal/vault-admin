@@ -36,7 +36,9 @@ All options can be set via environment variables or command line options
 | `VAULT_TOKEN` | --vault-token, -t | Vault token to use |
 | `VAULT_SKIP_VERIFY` | --vault-skip-verify, -K | Skip Vault TLS certificate verification |
 | `VAULT_SECRET_BASE_PATH`  | --vault-secret-base-path, -s | Base secret path, in Vault, to pull secrets for substitution. Defaults to `secret/vault-admin` |
+|   | --rotate-creds, -r | Perform key rotation on AWS secret engines |
 | `DEBUG`  | --debug, -d | Turn on debug logging |
+|   | --version, -v | Show version information |
 
 ## Configuration Files
 The configuration files are what drive how Vault is configured.  See the [examples/](examples/) directory for more information on how to set up the configuration.

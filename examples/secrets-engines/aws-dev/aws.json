@@ -3,6 +3,7 @@
     "access_key": "heresmyaccesskey",
     "secret_key": "heresmysecretkey"
   },
+  "overwrite_root_config": true,
   "config_lease": {
     "lease": "1h",
     "lease_max": "720h"
