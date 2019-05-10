@@ -1,3 +1,8 @@
+## 0.3.1
+
+BUGFIXES:
+* Fixed issue where kv backends not at the default `secret/` path would prompt to delete.  Also fixed potential issue for `cubbyhole` `system` and `identity` backends not at their default paths.
+
 ## 0.3.0
 
 FEATURES:

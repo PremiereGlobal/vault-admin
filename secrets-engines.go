@@ -113,10 +113,10 @@ func ConfigureSecretsEngines(secretsEnginesList SecretsEnginesList) {
 func CleanupSecretsEngines(secretsEnginesList SecretsEnginesList) {
 	existing_mounts, _ := VaultSys.ListMounts()
 
-	for path, _ := range existing_mounts {
+	for path, mountOutput := range existing_mounts {
 
 		// Ignore default mounts
-		if !(path == "sys/" || path == "cubbyhole/" || path == "secret/" || path == "identity/") {
+		if !(mountOutput.Type == "system" || mountOutput.Type == "cubbyhole" || mountOutput.Type == "identity" || mountOutput.Type == "kv") {
 			if _, ok := secretsEnginesList[path]; ok {
 				log.Debug("Secrets engine [" + path + "] exists in configuration, no cleanup necessary")
 			} else {
