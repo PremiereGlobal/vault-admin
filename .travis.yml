@@ -3,23 +3,22 @@ language: minimal
 services:
 - docker
 script:
-- scripts/build.sh ${TRAVIS_BRANCH} linux
-- scripts/build.sh ${TRAVIS_BRANCH} darwin
+- ./dockerBuild.sh ${TRAVIS_BRANCH}
 deploy:
 - provider: releases
   api_key:
     secure: x0x8TSocUv6fQ9xO5d/Ehn/iFypcqS0GzvycW1tXxPbG/m0I+PEsEDkCvia6Le5aa9uCPS/3DiCkt6h4sZEnWXqsWBAyaEXbAZgNCMT+NXSalgNsA/mHZi+EItzzwgi00vzHK7G6DFl2wZZq/11OGTngu2Xxin64EnnO2j55uCDkgX6Ifc5P0nD343ZJU8vb0hYEnjV6WvVWBYNINJOqEyyT+QjsSHWWzouVbkLlrBL8WmbvFDgmOAWASQWJqiyuuVrDCVufgCSWRikREUIJxFl65636RQ9Yau4l4JypC+OcYu5yxKN8cL/Yf09Nf7fFbYLk/REK0w57o/xbjDm6T6RIg4UDEBpG+29AZiz20m6c8V6sKo0IZL1rPh+k8OgWOKPZENakIdrxC3levRE8nxysG3f5w04sKFKD7g4kymLKPYSDkOxkHQiMJlccok0AkTa37BeqDqgPFfjkvnM18BUpPeolwNchB07/i62aREdmER9DTXQEsvdpwTOYMt6WDqasnVjvVMoudkEputV8NbJLf/st6OJdFjdMz3rfGbeM5aRNbf1Lz+lQBH1nGgVbc6/OddxdFJz1lXV4p8Ml9EOaMwiM7LjuqY45V8Xl9+XLeob0pRGZMROnye3lpmSQsxaQdta/S5Zlorz3IM5M3Qr3htuYID2NOrAPlGe3+ZM=
   file_glob: true
-  file: bin/*
+  file: bin/*.zip
   skip_cleanup: true
   on:
     tags: true
 - provider: script
-  script: bash scripts/publish_docker.sh ${TRAVIS_BRANCH}
+  script: bash scripts/publish_docker.sh ${TRAVIS_BRANCH} true
   on:
     tags: true
 - provider: script
-  script: bash scripts/publish_docker.sh ${TRAVIS_BRANCH} latest
+  script: bash scripts/publish_docker.sh ${TRAVIS_BRANCH} true
   on:
     branch: master
 env:
