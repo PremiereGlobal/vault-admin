@@ -12,10 +12,10 @@ echo "---------------------"
 echo "Building vault-admin"
 echo "---------------------"
 
-docker run --rm -v "$PWD":/go/fse -w /go/fse golang:1.13-alpine \
-apk add zip && ./build.sh ${VERSION} linux
-docker run --rm -v "$PWD":/go/fse -w /go/fse golang:1.13-alpine \
-apk add zip && ./build.sh ${VERSION} darwin
+docker run --rm -v "$PWD":/go/va -w /go/va golang:1.13-alpine \
+sh -c "apk add bash zip && ./build.sh ${VERSION} linux"
+docker run --rm -v "$PWD":/go/va -w /go/va golang:1.13-alpine \
+sh -c "apk add bash zip && ./build.sh ${VERSION} darwin"
 
 echo ""
 echo "---------------------"
