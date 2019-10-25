@@ -1,6 +1,6 @@
 module github.com/PremiereGlobal/vault-admin
 
-go 1.12
+go 1.13
 
 require (
 	github.com/Sirupsen/logrus v1.0.6
