@@ -9,12 +9,10 @@ GOOS=${2:-linux}
 mkdir -p bin
 
 # Build the binary in Docker and extract it from the container
-docker build --build-arg VERSION=${VERSION} --build-arg GOOS=${GOOS} -t ${DOCKER_REPO}:${VERSION}-${GOOS} ./
-docker run --rm --name vault-admin-build -d ${DOCKER_REPO}:${VERSION}-${GOOS} sh -c "sleep 120"
-docker cp vault-admin-build:/usr/bin/vadmin bin
-docker stop vault-admin-build
+docker build --no-cache --build-arg VERSION=${VERSION} --build-arg GOOS=${GOOS} -t ${DOCKER_REPO}:${VERSION}-${GOOS} ./
+docker run --init --entrypoint sh --rm -v $(pwd)/bin:/mnt ${DOCKER_REPO}:${VERSION}-${GOOS} -c "cp /usr/bin/vadmin /mnt"
 
 # Zip up the binary
 cd bin
-zip vadmin-${GOOS}-${VERSION}.zip vadmin
+zip -FS vadmin-${GOOS}-${VERSION}.zip vadmin
 rm vadmin
