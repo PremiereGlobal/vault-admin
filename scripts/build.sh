@@ -15,4 +15,4 @@ docker run --init --entrypoint sh --rm -v $(pwd)/bin:/mnt ${DOCKER_REPO}:${VERSI
 # Zip up the binary
 cd bin
 zip -FS vadmin-${GOOS}-${VERSION}.zip vadmin
-rm vadmin
+rm -rf vadmin
