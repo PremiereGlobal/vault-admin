@@ -1,10 +1,9 @@
 module github.com/PremiereGlobal/vault-admin
 
-go 1.12
+go 1.13
 
 require (
 	github.com/Sirupsen/logrus v1.0.6
-	github.com/davecgh/go-spew v1.1.1
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.0 // indirect
 	github.com/hashicorp/go-multierror v1.0.0 // indirect
