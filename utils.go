@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	log "github.com/Sirupsen/logrus"
+	// log "github.com/Sirupsen/logrus"
+	"bufio"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -191,27 +193,23 @@ func isJSON(s string) bool {
 	return json.Unmarshal([]byte(s), &js) == nil
 }
 
-func askForConfirmation(msg string, max int) bool {
+func askForConfirmation(s string) bool {
+	reader := bufio.NewReader(os.Stdin)
 
-	if max > 0 {
-		var response string
-		fmt.Print(msg)
-		_, err := fmt.Scanln(&response)
+	for {
+		fmt.Printf("%s [y/N]: ", s)
+
+		response, err := reader.ReadString('\n')
 		if err != nil {
-			log.Debug(err)
-			return askForConfirmation(msg, max-1)
+			log.Fatal(err)
 		}
 
-		if strings.ToLower(string(response[0])) == "y" {
+		response = strings.ToLower(strings.TrimSpace(response))
+
+		if response == "y" || response == "yes" {
 			return true
-		} else if strings.ToLower(string(response[0])) == "n" {
+		} else if response == "n" || response == "no" || response == "" {
 			return false
-		} else {
-			fmt.Println("Invalid response.")
-			return askForConfirmation(msg, max-1)
 		}
 	}
-
-	log.Warning("Max number of invalid confirmations reached, exiting with 'n' response")
-	return false
 }

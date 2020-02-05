@@ -2,12 +2,17 @@ package main
 
 import (
 	"encoding/json"
-	log "github.com/Sirupsen/logrus"
-	// "github.com/davecgh/go-spew/spew"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
 )
+
+type cleanupSecretsEnginesIdentityTask struct {
+	secretsEngine   SecretsEngine
+	entityList      map[string]string
+	groupList       map[string]string
+	entityGroupList map[string][]string
+}
 
 type EntityConfig struct {
 	Entity        map[string]interface{} `json:"entity,omitempty"`
@@ -98,12 +103,14 @@ func configureIdentitySecretsEngine(secretsEngine SecretsEngine) {
 					if err != nil {
 						log.Fatal("Error writing entity alias ", aliasConfig.Name, err)
 					}
-				} else {
+				} else if aliasConfig.MountAccessor != "" {
 					log.Debug("Alias not found for [" + aliasConfig.Name + ", " + aliasConfig.MountAccessor + "], creating...")
 					err := writeStructToVault("/identity/entity-alias", aliasConfig)
 					if err != nil {
 						log.Fatal("Error writing entity alias ", aliasConfig.Name, err)
 					}
+				} else {
+					log.Warnf("Alias %s cannot be created as mount %s does not exist", aliasConfig.Name, aliasConfig.MountPath)
 				}
 			}
 
@@ -125,7 +132,7 @@ func configureIdentitySecretsEngine(secretsEngine SecretsEngine) {
 
 				if !found {
 					log.Info("Entity alias " + existingAliasConfig.Name + "[" + existingAliasConfig.MountAccessor + "] on entity " + entity_name + " does not exist in configuration, prompting to delete")
-					if askForConfirmation("Delete entity alias "+existingAliasConfig.Name+"["+existingAliasConfig.MountAccessor+"] on entity "+entity_name+" [y/n]?: ", 3) {
+					if askForConfirmation("Delete entity alias " + existingAliasConfig.Name + "[" + existingAliasConfig.MountAccessor + "] on entity " + entity_name + "?") {
 						_, err := Vault.Delete(secretsEngine.Path + "entity-alias/id/" + existingAliasConfigID)
 						if err != nil {
 							log.Fatal("Error deleting entity alias ["+existingAliasConfigID+"] ", err)
@@ -143,13 +150,19 @@ func configureIdentitySecretsEngine(secretsEngine SecretsEngine) {
 	}
 
 	// Configure groups
-	configureIdentityGroups(secretsEngine, entityGroupList)
+	groupList := configureIdentityGroups(secretsEngine, entityGroupList)
 
-	// Cleanup Entities
-	cleanupEntities(secretsEngine, entityList)
+	// Cleanup Entities and EntityGroups
+	cleanupSecretsEnginesIdentityTask := cleanupSecretsEnginesIdentityTask{
+		secretsEngine:   secretsEngine,
+		entityList:      entityList,
+		groupList:       groupList,
+		entityGroupList: entityGroupList,
+	}
+	taskPromptChan <- cleanupSecretsEnginesIdentityTask
 }
 
-func configureIdentityGroups(secretsEngine SecretsEngine, entityGroupList map[string][]string) {
+func configureIdentityGroups(secretsEngine SecretsEngine, entityGroupList map[string][]string) map[string]string {
 
 	files, err := ioutil.ReadDir(Spec.ConfigurationPath + "/secrets-engines/" + secretsEngine.Path + "groups")
 	if err != nil {
@@ -188,25 +201,7 @@ func configureIdentityGroups(secretsEngine SecretsEngine, entityGroupList map[st
 		}
 	}
 
-	cleanupGroups(secretsEngine, groupList)
-
-	// Put out some warnings if there are groups in the entity configs that are not present in the current config
-	for groupName, entityIDs := range entityGroupList {
-		offendingEntities := ""
-		for _, entityID := range entityIDs {
-			entityName, err := getEntityNameByID(entityID)
-			if err != nil {
-				log.Fatal("Error getting entity name for entity ID ["+entityID+"] ", err)
-			}
-			offendingEntities = offendingEntities + entityName + ","
-		}
-
-		offendingEntities = strings.TrimSuffix(offendingEntities, ",")
-
-		if _, ok := groupList[groupName]; !ok {
-			log.Warn("Identity entities [" + offendingEntities + "] configured for group [" + groupName + "] but group does not exist.  Clean up entity configs.")
-		}
-	}
+	return groupList
 }
 
 // Gets an Alias ID based on the name and mountAccessor of the alias
@@ -241,18 +236,18 @@ func getEntityNameByID(entityID string) (string, error) {
 }
 
 // Removes named entites that are not present in the config
-func cleanupEntities(secretsEngine SecretsEngine, entityList map[string]string) {
+func (c cleanupSecretsEnginesIdentityTask) run(workerNum int) bool {
 
-	_, existing_entities := getSecretList(secretsEngine.Path + "entity/name")
+	_, existing_entities := getSecretList(c.secretsEngine.Path + "entity/name")
 	for _, v := range existing_entities {
 
 		if !strings.HasPrefix(v, "entity_") {
-			if _, ok := entityList[v]; ok {
+			if _, ok := c.entityList[v]; ok {
 				log.Debug("Entity [" + v + "] exists in configuration, no cleanup necessary")
 			} else {
 				log.Info("Entity [" + v + "] does not exist in configuration, prompting to delete")
-				if askForConfirmation("Delete entity ["+v+"] [y/n]?: ", 3) {
-					_, err := Vault.Delete(secretsEngine.Path + "entity/name/" + v)
+				if askForConfirmation("Delete entity [" + v + "]?") {
+					_, err := Vault.Delete(c.secretsEngine.Path + "entity/name/" + v)
 					if err != nil {
 						log.Fatal("Error deleting entity ["+v+"] ", err)
 					}
@@ -263,19 +258,15 @@ func cleanupEntities(secretsEngine SecretsEngine, entityList map[string]string) 
 			}
 		}
 	}
-}
 
-// Removes named groups that are not present in the config
-func cleanupGroups(secretsEngine SecretsEngine, groupList map[string]string) {
-
-	_, existing_groups := getSecretList(secretsEngine.Path + "group/name")
+	_, existing_groups := getSecretList(c.secretsEngine.Path + "group/name")
 	for _, v := range existing_groups {
-		if _, ok := groupList[v]; ok {
+		if _, ok := c.groupList[v]; ok {
 			log.Debug("Identity group [" + v + "] exists in configuration, no cleanup necessary")
 		} else {
 			log.Info("Identity group [" + v + "] does not exist in configuration, prompting to delete")
-			if askForConfirmation("Delete identity group ["+v+"] [y/n]?: ", 3) {
-				_, err := Vault.Delete(secretsEngine.Path + "group/name/" + v)
+			if askForConfirmation("Delete identity group [" + v + "]?") {
+				_, err := Vault.Delete(c.secretsEngine.Path + "group/name/" + v)
 				if err != nil {
 					log.Fatal("Error deleting identity group ["+v+"] ", err)
 				}
@@ -285,6 +276,26 @@ func cleanupGroups(secretsEngine SecretsEngine, groupList map[string]string) {
 			}
 		}
 	}
+
+	// Put out some warnings entities belong to a group that doesn't exist
+	for groupName, entityIDs := range c.entityGroupList {
+		offendingEntities := ""
+		for _, entityID := range entityIDs {
+			entityName, err := getEntityNameByID(entityID)
+			if err != nil {
+				log.Fatal("Error getting entity name for entity ID ["+entityID+"] ", err)
+			}
+			offendingEntities = offendingEntities + entityName + ","
+		}
+
+		offendingEntities = strings.TrimSuffix(offendingEntities, ",")
+
+		if _, ok := c.groupList[groupName]; !ok {
+			log.Warn("Identity entities [" + offendingEntities + "] configured for group [" + groupName + "] but group does not exist in configuration.  Clean up entity configs.")
+		}
+	}
+
+	return true
 }
 
 // LookupAuthMountAccessor returns the accessor_id of the auth mount

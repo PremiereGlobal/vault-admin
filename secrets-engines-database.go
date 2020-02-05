@@ -1,12 +1,14 @@
 package main
 
 import (
-	// "fmt"
-	// "reflect"
-	log "github.com/Sirupsen/logrus"
 	"io/ioutil"
 	"path/filepath"
 )
+
+type cleanupSecretsEnginesDatabaseTask struct {
+	secretsEngine         SecretsEngine
+	secretsEngineDatabase SecretsEngineDatabase
+}
 
 type SecretsEngineDatabase struct {
 	Roles map[string]string
@@ -57,7 +59,11 @@ func ConfigureDatabaseSecretsEngine(secretsEngine SecretsEngine) {
 	}
 
 	// Cleanup Roles
-	cleanupDatabaseRoles(secretsEngine, secretsEngineDatabase)
+	cleanupSecretsEnginesDatabaseTask := cleanupSecretsEnginesDatabaseTask{
+		secretsEngine:         secretsEngine,
+		secretsEngineDatabase: secretsEngineDatabase,
+	}
+	taskPromptChan <- cleanupSecretsEnginesDatabaseTask
 }
 
 func getDatabaseRoles(secretsEngine *SecretsEngine, secretsEngineDatabase *SecretsEngineDatabase) {
@@ -82,17 +88,17 @@ func getDatabaseRoles(secretsEngine *SecretsEngine, secretsEngineDatabase *Secre
 	}
 }
 
-func cleanupDatabaseRoles(secretsEngine SecretsEngine, secretsEngineDatabase SecretsEngineDatabase) {
+func (c cleanupSecretsEnginesDatabaseTask) run(workerNum int) bool {
 
-	success, existing_roles := getSecretList(secretsEngine.Path + "roles")
+	success, existing_roles := getSecretList(c.secretsEngine.Path + "roles")
 	if success {
 		for _, role := range existing_roles {
-			rolePath := secretsEngine.Path + "roles/" + role
-			if _, ok := secretsEngineDatabase.Roles[role]; ok {
+			rolePath := c.secretsEngine.Path + "roles/" + role
+			if _, ok := c.secretsEngineDatabase.Roles[role]; ok {
 				log.Debug("[" + rolePath + "] exists in configuration, no cleanup necessary")
 			} else {
 				log.Debug("[" + rolePath + "] does not exist in configuration, prompting to delete")
-				if askForConfirmation("Role ["+rolePath+"] does not exist in configuration.  Delete [y/n]?: ", 3) {
+				if askForConfirmation("Role [" + rolePath + "] does not exist in configuration.  Delete?") {
 					_, err := Vault.Delete(rolePath)
 					if err != nil {
 						log.Fatal("Error deleting role ["+rolePath+"]", err)
@@ -104,4 +110,6 @@ func cleanupDatabaseRoles(secretsEngine SecretsEngine, secretsEngineDatabase Sec
 			}
 		}
 	}
+
+	return true
 }

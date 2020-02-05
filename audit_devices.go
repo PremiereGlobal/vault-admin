@@ -2,33 +2,61 @@ package main
 
 import (
 	"encoding/json"
-	log "github.com/Sirupsen/logrus"
-	VaultApi "github.com/hashicorp/vault/api"
 	"io/ioutil"
 	"path/filepath"
 	"reflect"
+
+	VaultApi "github.com/hashicorp/vault/api"
 )
 
-// type AuditDevice struct {
-//   Type string `json:"type"`
-//   Description string `json:"description"`
-//   Options map[string]interface{} `json:"options"`
-// }
-
-type AuditDeviceList map[string]VaultApi.EnableAuditOptions
-
-func SyncAuditDevices() {
-
-	auditDeviceList := AuditDeviceList{}
-
-	log.Info("Syncing Audit Devices")
-	GetAuditDevices(auditDeviceList)
-	ConfigureAuditDevices(auditDeviceList)
-	CleanupAuditDevices(auditDeviceList)
+type syncAuditDevicesTask struct {
+	auditDeviceList map[string]VaultApi.EnableAuditOptions
 }
 
-func GetAuditDevices(auditDeviceList AuditDeviceList) {
-	files, err := ioutil.ReadDir(Spec.ConfigurationPath + "/audit_devices/")
+type configureAuditDeviceTask struct {
+	mountPath   string
+	auditDevice VaultApi.EnableAuditOptions
+}
+
+type cleanupAuditDevicesTask struct {
+	auditDeviceList map[string]VaultApi.EnableAuditOptions
+}
+
+type recreateAuditDeviceTask struct {
+	mountPath   string
+	auditDevice VaultApi.EnableAuditOptions
+}
+
+func (s syncAuditDevicesTask) run(workerNum int) bool {
+
+	// Decrement waitgroup counter when we're done
+	defer wg.Done()
+
+	log.Info("Syncing Audit Devices")
+	s.auditDeviceList = make(map[string]VaultApi.EnableAuditOptions)
+	s.Load()
+
+	// Add to devices to channel to be processed
+	for mountPath, auditDevice := range s.auditDeviceList {
+		configureAuditDeviceTask := configureAuditDeviceTask{
+			mountPath:   mountPath,
+			auditDevice: auditDevice,
+		}
+		wg.Add(1)
+		taskChan <- configureAuditDeviceTask
+	}
+
+	// Add cleanup task
+	cleanupAuditDevicesTask := cleanupAuditDevicesTask{
+		auditDeviceList: s.auditDeviceList,
+	}
+	taskPromptChan <- cleanupAuditDevicesTask
+
+	return true
+}
+
+func (s syncAuditDevicesTask) Load() {
+	files, err := ioutil.ReadDir(filepath.Join(Spec.ConfigurationPath, "audit_devices"))
 	if err != nil {
 		log.Warn("No audit devices found: ", err)
 		return
@@ -56,60 +84,74 @@ func GetAuditDevices(auditDeviceList AuditDeviceList) {
 				log.Fatal("Error parsing audit device configuration: ", file.Name(), " ", err)
 			}
 
-			auditDeviceList[path] = m
+			s.auditDeviceList[path] = m
 		} else {
 			log.Warn("Audit file has wrong extension.  Will not be processed: ", Spec.ConfigurationPath+"/audit_devices/"+file.Name())
 		}
 	}
 }
 
-func ConfigureAuditDevices(auditDeviceList AuditDeviceList) {
-	for mountPath, auditDevice := range auditDeviceList {
+// func (s syncAuditDevicesTask) ConfigureAuditDevices(auditDeviceList AuditDeviceList) {
+func (c configureAuditDeviceTask) run(workerNum int) bool {
 
-		// Check if mount is enabled
-		create := false
-		recreate := false
-		existingDevices, _ := VaultSys.ListAudit()
-		if _, ok := existingDevices[mountPath]; ok {
-			if existingDevices[mountPath].Type != auditDevice.Type || !reflect.DeepEqual(existingDevices[mountPath].Options, auditDevice.Options) || existingDevices[mountPath].Description != auditDevice.Description {
-				log.Info("Audit device [" + mountPath + "] exists but doesn't match configuration.  Must recreate to update.")
-				if askForConfirmation("Recreate audit device ["+mountPath+"] to reconfigure [y/n]?: ", 3) {
-					err := VaultSys.DisableAudit(mountPath)
-					if err != nil {
-						log.Fatal("Error deleting audit device ["+mountPath+"]", err)
-					}
-					log.Info("Audit device [" + mountPath + "] deleted")
-					recreate = true
-				} else {
-					log.Info("Leaving [" + mountPath + "] even though it does not match configuration")
-				}
+	// Decrement waitgroup counter when we're done
+	defer wg.Done()
+
+	existingDevices, _ := VaultSys.ListAudit()
+	if _, ok := existingDevices[c.mountPath]; ok {
+		if existingDevices[c.mountPath].Type != c.auditDevice.Type || !reflect.DeepEqual(existingDevices[c.mountPath].Options, c.auditDevice.Options) || existingDevices[c.mountPath].Description != c.auditDevice.Description {
+			recreateAuditDeviceTask := recreateAuditDeviceTask{
+				mountPath:   c.mountPath,
+				auditDevice: c.auditDevice,
 			}
+			taskPromptChan <- recreateAuditDeviceTask
 		} else {
-			create = true
+			log.Infof("Audit device %s already in sync", c.mountPath)
 		}
-
-		if create || recreate {
-			log.Debug("Enabling audit device [" + mountPath + "]")
-			err := VaultSys.EnableAuditWithOptions(mountPath, &auditDevice)
-			if err != nil {
-				log.Fatal("Error enabling audit device ["+mountPath+"]", err)
-			}
-			log.Info("Audit device [" + mountPath + "] enabled")
-		}
+	} else {
+		createAuditDevice(c.mountPath, c.auditDevice)
 	}
+
+	return true
 }
 
-func CleanupAuditDevices(auditDeviceList AuditDeviceList) {
+func createAuditDevice(mountPath string, auditDevice VaultApi.EnableAuditOptions) {
+	log.Debug("Enabling audit device [" + mountPath + "]")
+	err := VaultSys.EnableAuditWithOptions(mountPath, &auditDevice)
+	if err != nil {
+		log.Fatal("Error enabling audit device ["+mountPath+"]", err)
+	}
+	log.Info("Audit device [" + mountPath + "] enabled")
+}
+
+func (r recreateAuditDeviceTask) run(workerNum int) bool {
+
+	log.Info("Audit device [" + r.mountPath + "] exists but doesn't match configuration.  Must recreate to update.")
+	if askForConfirmation("Recreate audit device [" + r.mountPath + "] to reconfigure") {
+		err := VaultSys.DisableAudit(r.mountPath)
+		if err != nil {
+			log.Fatal("Error deleting audit device ["+r.mountPath+"]", err)
+		}
+		log.Info("Audit device [" + r.mountPath + "] deleted")
+		createAuditDevice(r.mountPath, r.auditDevice)
+	} else {
+		log.Info("Leaving [" + r.mountPath + "] even though it does not match configuration")
+	}
+
+	return true
+}
+
+func (c cleanupAuditDevicesTask) run(workerNum int) bool {
 
 	existingDevices, _ := VaultSys.ListAudit()
 
 	for mountPath, _ := range existingDevices {
 
-		if _, ok := auditDeviceList[mountPath]; ok {
+		if _, ok := c.auditDeviceList[mountPath]; ok {
 			log.Debug("Audit device [" + mountPath + "] exists in configuration, no cleanup necessary")
 		} else {
 			log.Info("Audit device [" + mountPath + "] does not exist in configuration, prompting to delete")
-			if askForConfirmation("Delete audit device ["+mountPath+"] [y/n]?: ", 3) {
+			if askForConfirmation("Delete audit device [" + mountPath + "]?") {
 				err := VaultSys.DisableAudit(mountPath)
 				if err != nil {
 					log.Fatal("Error deleting audit device ["+mountPath+"]", err)
@@ -120,4 +162,6 @@ func CleanupAuditDevices(auditDeviceList AuditDeviceList) {
 			}
 		}
 	}
+
+	return true
 }

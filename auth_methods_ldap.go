@@ -1,8 +1,9 @@
 package main
 
-import (
-	log "github.com/Sirupsen/logrus"
-)
+type cleanupAuthMethodLdapTask struct {
+	path          string
+	ldapPolicyMap LdapPolicyMap
+}
 
 type LdapPolicyMap map[string]LdapPolicyItem
 
@@ -21,7 +22,12 @@ func configureLDAPAuth(auth authMethod) {
 	ldapPolicyMap := LdapPolicyMap{}
 	getLdapPolicies(ldapPolicyMap, policyMap)
 	configureLdapPolicies(auth.Path, ldapPolicyMap)
-	cleanupLdapPolicies(auth.Path, ldapPolicyMap)
+
+	cleanupAuthMethodLdapTask := cleanupAuthMethodLdapTask{
+		path:          auth.Path,
+		ldapPolicyMap: ldapPolicyMap,
+	}
+	taskPromptChan <- cleanupAuthMethodLdapTask
 }
 
 func getLdapPolicies(ldapPolicyMap LdapPolicyMap, policyMap map[string]interface{}) {
@@ -62,8 +68,8 @@ func configureLdapPolicies(path string, ldapPolicyMap LdapPolicyMap) {
 	}
 }
 
-func cleanupLdapPolicies(path string, ldapPolicyMap LdapPolicyMap) {
-	existing_groups, _ := Vault.List("/auth/" + path + "groups")
+func (c cleanupAuthMethodLdapTask) run(workerNum int) bool {
+	existing_groups, _ := Vault.List("/auth/" + c.path + "groups")
 
 	for _, v := range existing_groups.Data {
 		switch ldapGroups := v.(type) {
@@ -71,12 +77,12 @@ func cleanupLdapPolicies(path string, ldapPolicyMap LdapPolicyMap) {
 			for _, groupArrayValue := range ldapGroups {
 				switch group_name := groupArrayValue.(type) {
 				case string:
-					if _, ok := ldapPolicyMap[group_name]; ok {
+					if _, ok := c.ldapPolicyMap[group_name]; ok {
 						log.Debug("LDAP group mapping [" + group_name + "] exists in configuration, no cleanup necessary")
 					} else {
 						log.Info("LDAP group mapping [" + group_name + "] does not exist in configuration, prompting to delete")
-						if askForConfirmation("Delete LDAP group mapping ["+group_name+"] [y/n]?: ", 3) {
-							_, err := Vault.Delete("/auth/" + path + "groups/" + group_name)
+						if askForConfirmation("Delete LDAP group mapping [" + group_name + "]") {
+							_, err := Vault.Delete("/auth/" + c.path + "groups/" + group_name)
 							if err != nil {
 								log.Fatal("Error deleting LDAP group mapping ["+group_name+"] ", err)
 							}
@@ -93,4 +99,6 @@ func cleanupLdapPolicies(path string, ldapPolicyMap LdapPolicyMap) {
 			log.Fatal("Issue parsing LDAP groups mapping from Vault [error 001]")
 		}
 	}
+
+	return true
 }

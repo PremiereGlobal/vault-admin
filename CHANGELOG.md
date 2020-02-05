@@ -1,3 +1,10 @@
+## 0.4.0
+
+IMPROVEMENTS:
+* Added concurrency.  By default, `vault-admin` will use 5 "threads" to process config items.  This count can be configured with the `-n`/`--concurrent` command line flags.
+  * Note: Concurrency changes the order of operations for some actions. This should not pose any problems but any user prompts will now be held off until the end of the run.
+* Reduced logging verbosity for default level
+
 ## 0.3.1
 
 BUGFIXES:

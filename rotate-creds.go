@@ -1,9 +1,5 @@
 package main
 
-import (
-	log "github.com/Sirupsen/logrus"
-)
-
 // Rotate backend credentials - currently just AWS
 func RotateCreds() {
 	existing_mounts, _ := VaultSys.ListMounts()

@@ -1,30 +1,57 @@
 package main
 
 import (
-	log "github.com/Sirupsen/logrus"
 	"io/ioutil"
 	"path/filepath"
 )
+
+type syncPoliciesTask struct {
+	policyList map[string]Policy
+}
+
+type configurePolicyTask struct {
+	policyName string
+	policy     Policy
+}
+
+type cleanupPolicyTask struct {
+	policyList map[string]Policy
+}
 
 type Policy struct {
 	Name  string
 	Rules string
 }
 
-type PolicyList map[string]Policy
+func (s syncPoliciesTask) run(workerNum int) bool {
 
-func SyncPolicies() {
-
-	policyList := PolicyList{}
+	// Decrement waitgroup counter when we're done
+	defer wg.Done()
 
 	log.Info("Syncing Policies")
-	GetPolicies(policyList)
-	WritePolicies(policyList)
-	CleanupPolicies(policyList)
+	s.policyList = make(map[string]Policy)
+	s.Load()
+
+	for policyName, policy := range s.policyList {
+		configurePolicyTask := configurePolicyTask{
+			policyName: policyName,
+			policy:     policy,
+		}
+		wg.Add(1)
+		taskChan <- configurePolicyTask
+	}
+
+	// Add cleanup task
+	cleanupPolicyTask := cleanupPolicyTask{
+		policyList: s.policyList,
+	}
+	taskPromptChan <- cleanupPolicyTask
+
+	return true
 }
 
-func GetPolicies(policyList PolicyList) {
-	files, err := ioutil.ReadDir(Spec.ConfigurationPath + "/policies/")
+func (s syncPoliciesTask) Load() {
+	files, err := ioutil.ReadDir(filepath.Join(Spec.ConfigurationPath, "policies"))
 	if err != nil {
 		log.Warn("No policies found: ", err)
 	}
@@ -46,7 +73,7 @@ func GetPolicies(policyList PolicyList) {
 			filename := file.Name()
 			policy_name := filename[0 : len(filename)-len(filepath.Ext(filename))]
 			p.Rules = string(content)
-			policyList[policy_name] = p
+			s.policyList[policy_name] = p
 
 		} else {
 			log.Warn("Policy file has wrong extension.  Will not be processed: ", Spec.ConfigurationPath+"/policies/"+file.Name())
@@ -54,29 +81,32 @@ func GetPolicies(policyList PolicyList) {
 	}
 }
 
-func WritePolicies(policyList PolicyList) {
-	log.Debug("Writing policies")
-	for policy_name, policy := range policyList {
-		err := VaultSys.PutPolicy(policy_name, policy.Rules)
-		if err != nil {
-			log.Fatal(err)
-		}
-		log.Debug("Wrote policy: ", policy_name)
+func (c configurePolicyTask) run(workerNum int) bool {
+
+	// Decrement waitgroup counter when we're done
+	defer wg.Done()
+
+	err := VaultSys.PutPolicy(c.policyName, c.policy.Rules)
+	if err != nil {
+		log.Fatal(err)
 	}
+	log.Debug("Wrote policy: ", c.policyName)
+
+	return true
 }
 
-func CleanupPolicies(policyList PolicyList) {
+func (c cleanupPolicyTask) run(workerNum int) bool {
 	existing_policies, _ := VaultSys.ListPolicies()
 
 	for _, policy := range existing_policies {
 
 		// Ignore root and default policies. These cannot be removed
 		if !(policy == "root" || policy == "default") {
-			if _, ok := policyList[policy]; ok {
+			if _, ok := c.policyList[policy]; ok {
 				log.Debug(policy + " exists in configuration, no cleanup necessary")
 			} else {
 				log.Debug(policy + " does not exist in configuration, prompting to delete")
-				if askForConfirmation("Policy ["+policy+"] does not exist in configuration.  Delete policy ["+policy+"] [y/n]?: ", 3) {
+				if askForConfirmation("Policy [" + policy + "] does not exist in configuration.  Delete?") {
 					err := VaultSys.DeletePolicy(policy)
 					if err != nil {
 						log.Fatal("Error deleting policy ", policy, err)
@@ -88,4 +118,6 @@ func CleanupPolicies(policyList PolicyList) {
 			}
 		}
 	}
+
+	return true
 }

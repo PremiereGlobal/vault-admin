@@ -2,12 +2,16 @@ package main
 
 import (
 	"encoding/json"
-	log "github.com/Sirupsen/logrus"
 	"io/ioutil"
 	"path/filepath"
 	"strconv"
 	"time"
 )
+
+type cleanupSecretsEnginesAwsTask struct {
+	secretsEngine    SecretsEngine
+	secretsEngineAWS SecretsEngineAWS
+}
 
 type SecretsEngineAWS struct {
 	RootConfig               AwsRootConfig  `json:"root_config"`
@@ -102,7 +106,12 @@ func ConfigureAwsSecretsEngine(secretsEngine SecretsEngine) {
 	}
 
 	// Cleanup Roles
-	cleanupAwsRoles(secretsEngine, secretsEngineAWS)
+
+	cleanupSecretsEnginesAwsTask := cleanupSecretsEnginesAwsTask{
+		secretsEngine:    secretsEngine,
+		secretsEngineAWS: secretsEngineAWS,
+	}
+	taskPromptChan <- cleanupSecretsEnginesAwsTask
 }
 
 func getAwsRoles(secretsEngine *SecretsEngine, secretsEngineAWS *SecretsEngineAWS) {
@@ -145,17 +154,17 @@ func getAwsRoles(secretsEngine *SecretsEngine, secretsEngineAWS *SecretsEngineAW
 	}
 }
 
-func cleanupAwsRoles(secretsEngine SecretsEngine, secretsEngineAWS SecretsEngineAWS) {
+func (c cleanupSecretsEnginesAwsTask) run(workerNum int) bool {
 
-	success, existing_roles := getSecretList(secretsEngine.Path + "roles")
+	success, existing_roles := getSecretList(c.secretsEngine.Path + "roles")
 	if success {
 		for _, role := range existing_roles {
-			rolePath := secretsEngine.Path + "roles/" + role
-			if _, ok := secretsEngineAWS.Roles[role]; ok {
+			rolePath := c.secretsEngine.Path + "roles/" + role
+			if _, ok := c.secretsEngineAWS.Roles[role]; ok {
 				log.Debug("[" + rolePath + "] exists in configuration, no cleanup necessary")
 			} else {
 				log.Debug("[" + rolePath + "] does not exist in configuration, prompting to delete")
-				if askForConfirmation("Role ["+rolePath+"] does not exist in configuration.  Delete [y/n]?: ", 3) {
+				if askForConfirmation("Role [" + rolePath + "] does not exist in configuration.  Delete?") {
 					_, err := Vault.Delete(rolePath)
 					if err != nil {
 						log.Fatal("Error deleting role ["+rolePath+"]", err)
@@ -167,4 +176,6 @@ func cleanupAwsRoles(secretsEngine SecretsEngine, secretsEngineAWS SecretsEngine
 			}
 		}
 	}
+
+	return true
 }

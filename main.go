@@ -2,12 +2,15 @@ package main
 
 import (
 	"fmt"
-	log "github.com/Sirupsen/logrus"
+	"os"
+	"reflect"
+	"strconv"
+	"sync"
+
 	VaultApi "github.com/hashicorp/vault/api"
 	GoFlags "github.com/jessevdk/go-flags"
 	envconfig "github.com/kelseyhightower/envconfig"
-	"os"
-	"reflect"
+	"github.com/sirupsen/logrus"
 )
 
 // Application options
@@ -18,6 +21,7 @@ type Specification struct {
 	VaultSkipVerify     bool   `envconfig:"VAULT_SKIP_VERIFY" short:"K" long:"skip-verify" description:"Skip Vault TLS certificate verification"`
 	VaultSecretBasePath string `envconfig:"VAULT_SECRET_BASE_PATH" short:"s" long:"vault-secret-base-path" description:"Base secret path, in Vault, to pull secrets for substitution" vdefault:"secret/vault-admin/"`
 	RotateCreds         bool   `short:"r" long:"rotate-creds" description:"Rotates AWS root credentials" vdefault:"false"`
+	Concurrency         string `short:"n" long:"concurrent" description:"Number of concurrent threads to run (default: 5)" vdefault:"5"`
 	Debug               bool   `envconfig:"DEBUG" short:"d" long:"debug" description:"Turn on debug logging"`
 	Version             bool   `short:"v" long:"version" description:"Display the version of the tool"`
 	CurrentVersion      string
@@ -28,6 +32,27 @@ var VaultClient *VaultApi.Client
 var Vault *VaultApi.Logical
 var VaultSys *VaultApi.Sys
 var Spec Specification
+
+// This is our main waitgroup that counts items added/removed from the process
+// queue.  When this gets to 0, we're done
+var wg sync.WaitGroup
+
+// task is an arbitrary item that needs to processed
+type task interface {
+	run(int) bool
+}
+
+// Our main task channel
+var taskChan chan task
+
+// Our user input task channel
+var taskPromptChan chan task
+
+var log *logrus.Logger
+
+func init() {
+	log = logrus.New()
+}
 
 func main() {
 
@@ -69,10 +94,10 @@ func main() {
 
 	// Set log level
 	if Spec.Debug {
-		log.SetLevel(log.DebugLevel)
+		log.SetLevel(logrus.DebugLevel)
 		log.Debug("Debug level set")
 	} else {
-		log.SetLevel(log.InfoLevel)
+		log.SetLevel(logrus.InfoLevel)
 	}
 
 	// Set defaults and ensure required vars are set
@@ -107,14 +132,64 @@ func main() {
 	if Spec.RotateCreds {
 		RotateCreds()
 	} else {
-		// Call sync methods
-		SyncAuditDevices()
-		SyncAuthMethods()
-		SyncPolicies()
-		SyncSecretsEngines()
+
+		// Create our channels that will buffer up to x tasks at a time
+		taskChan = make(chan task, 2000)
+		taskPromptChan = make(chan task, 10000)
+
+		// Start the workers
+		log.Debugf("Setting concurrency to %s threads", Spec.Concurrency)
+		workerCount, err := strconv.Atoi(Spec.Concurrency)
+		if err != nil {
+			log.Fatalf("Invalid value '%v' for concurrency", Spec.Concurrency)
+		}
+		for i := 0; i < workerCount; i++ {
+			go worker(i, taskChan)
+		}
+
+		// We add one to the waitgroup intitially because we want to make sure we block`
+		// until we get through adding all the tasks in the queue
+		wg.Add(1)
+
+		// Add a count to the waitgroup and add the task to the queue
+		syncAuditDevicesTask := syncAuditDevicesTask{}
+		wg.Add(1)
+		taskChan <- syncAuditDevicesTask
+		syncAuthMethodsTask := syncAuthMethodsTask{}
+		wg.Add(1)
+		taskChan <- syncAuthMethodsTask
+		syncPoliciesTask := syncPoliciesTask{}
+		wg.Add(1)
+		taskChan <- syncPoliciesTask
+		syncSecretsEnginesTask := syncSecretsEnginesTask{}
+		wg.Add(1)
+		taskChan <- syncSecretsEnginesTask
+
+		// We're done adding all the tasks, so remove our main blocker so that
+		// the program can exit as soon as all the projects are done
+		wg.Done()
+
+		// Now wait for all the tasks to finish
+		wg.Wait()
+
+		// Close the prompt channel so once we're done processing, we'll be done
+		close(taskPromptChan)
+
+		// Now run through any user prompt messages needed
+		for taskPrompt := range taskPromptChan {
+			taskPrompt.run(0)
+		}
 	}
 
 	log.Info("Done")
+}
+
+// worker is the main worker function that processes all tasks
+// This will be called in a goroutine
+func worker(workerNum int, taskChan <-chan task) {
+	for task := range taskChan {
+		task.run(workerNum)
+	}
 }
 
 func setDefault(spec *Specification) {
