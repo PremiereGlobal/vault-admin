@@ -6,7 +6,6 @@ import (
 	"github.com/PremiereGlobal/vault-admin/pkg/auth"
 	"github.com/PremiereGlobal/vault-admin/pkg/secrets-engines/identity"
 	log "github.com/Sirupsen/logrus"
-	// "github.com/davecgh/go-spew/spew"
 	"io/ioutil"
 	"path"
 	"path/filepath"
@@ -313,15 +312,18 @@ func (ident *IdentitySecretsEngine) applyGroupUpdates() {
 
 	// Get our existing groups (in case any new ones were added)
 	ident.fetchGroups()
+	ident.fetchEntities()
 
 	// This loop sets the ID of the group as well as the members IDs for the groups
 	// and then writes the group to Vault
 	for groupName, _ := range ident.groups {
 		group := ident.groups[groupName]
 		group.ID = ident.existingGroups[groupName].ID
+
 		for _, memberEntityName := range ident.groupMembersEntities[groupName] {
 			group.MemberEntityIDs = append(group.MemberEntityIDs, ident.existingEntities[memberEntityName].ID)
 		}
+
 		for _, memberGroupName := range ident.groupMembersGroups[groupName] {
 			group.MemberGroupIDs = append(group.MemberGroupIDs, ident.existingGroups[memberGroupName].ID)
 		}
