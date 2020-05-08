@@ -2,6 +2,6 @@
   "type": "file",
   "description": "Audit logging to file",
   "options": {
-    "path": "/vault/logs/vault_audit.log"
+    "path": "/tmp/vault/audit.log"
   }
 }

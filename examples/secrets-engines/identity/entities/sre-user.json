@@ -1,7 +1,7 @@
 {
   "entity": {
     "metadata": {
-      "test1": "testing"
+      "test1": "test"
     },
     "policies": [
       "group-default"
@@ -10,14 +10,11 @@
   },
   "entity-aliases": [
     {
-      "name": "userc",
+      "name": "sre-user",
       "mount_path": "userpass/"
     }
   ],
   "entity-groups": [
-    "sre",
-    "groupx",
-    "groupy",
-    "foo"
+    "sre"
   ]
 }

@@ -56,7 +56,10 @@ func getSecretArray(path string) (bool, map[string]string) {
 	return true, secretArray
 }
 
-func getSecretListData(path string) (map[string]interface{}, error) {
+// GetSecretListKeyInfo takes a path and performs a LIST operation on it
+// If available, returns a map of key_info
+// If second parameter, v, is passed, info is unmarshalled
+func GetSecretListKeyInfo(path string, v interface{}) (map[string]interface{}, error) {
 
 	secretMap := make(map[string]interface{})
 
@@ -69,7 +72,17 @@ func getSecretListData(path string) (map[string]interface{}, error) {
 		if _, ok := secret.Data["key_info"]; ok {
 			switch value := secret.Data["key_info"].(type) {
 			case map[string]interface{}:
-				return value, nil
+				if v != nil {
+					jsondata, err := json.Marshal(value)
+					if err != nil {
+						return nil, err
+					}
+					if err := json.Unmarshal(jsondata, v); err != nil {
+						return nil, err
+					}
+				} else {
+					return value, nil
+				}
 			default:
 				return nil, errors.New("Secret list failed on [" + path + "], expected map[string]interface {} but got " + fmt.Sprintf("%T", value))
 			}
@@ -214,4 +227,22 @@ func askForConfirmation(msg string, max int) bool {
 
 	log.Warning("Max number of invalid confirmations reached, exiting with 'n' response")
 	return false
+}
+
+// structToMap takes in an arbitrary interface and converts it into a map[string]interface{}
+// using the json/yaml tags
+// This is the format that Vault uses for writing data
+func structToMap(item interface{}) map[string]interface{} {
+	jsonData, err := json.Marshal(&item)
+	if err != nil {
+		log.Fatalf("Unable to marshall struct: %v", err)
+	}
+
+	var mm map[string]interface{}
+	err = json.Unmarshal(jsonData, &mm)
+	if err != nil {
+		log.Fatalf("Unable to unmarshall struct: %v", err)
+	}
+
+	return mm
 }

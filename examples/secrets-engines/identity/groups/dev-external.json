@@ -1,6 +1,6 @@
 {
   "group": {
-    "type": "internal",
+    "type": "external",
     "metadata": {
       "description": "This is a description of this group"
     },
@@ -9,7 +9,10 @@
     ]
   },
   "group-groups": [
-    "groupx",
-    "groupy"
-  ]
+    "dev"
+  ],
+  "group-alias": {
+    "name": "dev",
+    "mount_path": "/ldap"
+  }
 }
