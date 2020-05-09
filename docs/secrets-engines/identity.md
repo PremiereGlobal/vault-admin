@@ -93,7 +93,7 @@ Contains the definition of the group and takes a similar form as the [Create an 
   }
 ```
 
-### `<[]groupAliasConfig>`
+### `<groupAliasConfig>`
 > Note: Group aliases only work on groups of type: *external*
 
 Contains a single of definitions of a [group alias](https://www.vaultproject.io/docs/secrets/identity#external-vs-internal-groups) to associate with this group.   Takes a similar form as the [Create a Group Alias](https://www.vaultproject.io/api-docs/secret/identity/group-alias#create-a-group-alias) api call but without the `id` or `canonical_id` attributes (these will be added automatically using the ids of the group/alias).  Also, in order to make mounting easier, `mount_accessor` can be replaced with `mount_path` to specify the mount to which the alias should belong to.   For example:
