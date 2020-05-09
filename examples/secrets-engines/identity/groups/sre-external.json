@@ -10,6 +10,6 @@
   ],
   "group-alias": {
     "name": "userpass-group-name",
-    "mount_accessor": "auth_userpass_1bc0d07b"
+    "mount_path": "userpass/"
   }
 }

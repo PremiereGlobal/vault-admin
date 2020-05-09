@@ -13,6 +13,6 @@
   ],
   "group-alias": {
     "name": "dev",
-    "mount_path": "/ldap"
+    "mount_path": "ldap/"
   }
 }

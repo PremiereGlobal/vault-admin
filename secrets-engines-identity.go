@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/PremiereGlobal/vault-admin/pkg/auth"
 	"github.com/PremiereGlobal/vault-admin/pkg/secrets-engines/identity"
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"path"
 	"path/filepath"
