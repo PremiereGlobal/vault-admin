@@ -23,3 +23,13 @@ type Entity struct {
 }
 
 type EntityList map[string]Entity
+
+func (entityList EntityList) GetEntityByID(id string) *Entity {
+	for _, e := range entityList {
+		if e.ID == id {
+			return &e
+		}
+	}
+
+	return nil
+}
