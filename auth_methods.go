@@ -125,6 +125,9 @@ func configureAuthMethods(authMethodList authMethodList) {
 		} else if mount.AuthOptions.Type == "ldap" {
 			log.Info("Running additional configuration for ", mount.Path)
 			configureLDAPAuth(mount)
+		} else if mount.AuthOptions.Type == "oidc" {
+			log.Info("Running additional configuration for ", mount.Path)
+			configureOIDCAuth(mount)
 		} else {
 			log.Warn("Auth types other than LDAP not currently configurable, please open PR!")
 		}

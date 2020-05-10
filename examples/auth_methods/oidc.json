@@ -1,0 +1,24 @@
+{
+  "auth_options": {
+    "type": "oidc",
+    "description": "Vault authentication with OIDC provider"
+  },
+  "config": {
+    "oidc_response_types": "code",
+    "oidc_client_id": "0oabp9arxZrnLqPVO4x6",
+    "oidc_client_secret": "tPhFv4_bKVpLe72-Josl7Jk4gEDDvOmwJsgyLPnv",
+    "default_role": "default",
+    "oidc_discovery_url": "https://dev-754733.okta.com/oauth2/default"
+  },
+  "additional_config": {
+    "roles": [
+      {
+        "name": "default",
+        "role_type": "oidc",
+        "token_policies": [
+          "group-default"
+        ]
+      }
+    ]
+  }
+}
