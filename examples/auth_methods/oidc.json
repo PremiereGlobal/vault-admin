@@ -8,15 +8,31 @@
     "oidc_client_id": "0oabp9arxZrnLqPVO4x6",
     "oidc_client_secret": "tPhFv4_bKVpLe72-Josl7Jk4gEDDvOmwJsgyLPnv",
     "default_role": "default",
-    "oidc_discovery_url": "https://dev-754733.okta.com/oauth2/default"
+    "oidc_discovery_url": "https://dev-123456.okta.com/oauth2/default"
   },
   "additional_config": {
     "roles": [
       {
         "name": "default",
-        "role_type": "oidc",
         "token_policies": [
           "group-default"
+        ],
+        "user_claim": "email",
+        "groups_claim": "groups",
+        "allowed_redirect_uris": [
+          "https://dev-123456.okta.com/oauth2/default"
+        ]
+      },
+      {
+        "name": "admin",
+        "token_policies": [
+          "group-default",
+          "vault-admin"
+        ],
+        "user_claim": "email",
+        "groups_claim": "groups",
+        "allowed_redirect_uris": [
+          "https://dev-123456.okta.com/oauth2/default"
         ]
       }
     ]
