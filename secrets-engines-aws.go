@@ -147,8 +147,8 @@ func getAwsRoles(secretsEngine *SecretsEngine, secretsEngineAWS *SecretsEngineAW
 
 func cleanupAwsRoles(secretsEngine SecretsEngine, secretsEngineAWS SecretsEngineAWS) {
 
-	success, existing_roles := getSecretList(secretsEngine.Path + "roles")
-	if success {
+	existing_roles := getSecretList(secretsEngine.Path + "roles")
+	if existing_roles != nil {
 		for _, role := range existing_roles {
 			rolePath := secretsEngine.Path + "roles/" + role
 			if _, ok := secretsEngineAWS.Roles[role]; ok {

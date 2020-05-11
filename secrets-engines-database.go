@@ -82,8 +82,8 @@ func getDatabaseRoles(secretsEngine *SecretsEngine, secretsEngineDatabase *Secre
 
 func cleanupDatabaseRoles(secretsEngine SecretsEngine, secretsEngineDatabase SecretsEngineDatabase) {
 
-	success, existing_roles := getSecretList(secretsEngine.Path + "roles")
-	if success {
+	existing_roles := getSecretList(secretsEngine.Path + "roles")
+	if existing_roles != nil {
 		for _, role := range existing_roles {
 			rolePath := secretsEngine.Path + "roles/" + role
 			if _, ok := secretsEngineDatabase.Roles[role]; ok {

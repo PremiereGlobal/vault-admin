@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	VaultApi "github.com/hashicorp/vault/api"
 	GoFlags "github.com/jessevdk/go-flags"
 	envconfig "github.com/kelseyhightower/envconfig"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"reflect"
 	"strconv"

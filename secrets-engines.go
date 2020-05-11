@@ -2,8 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	log "github.com/sirupsen/logrus"
 	VaultApi "github.com/hashicorp/vault/api"
+	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 )
 
