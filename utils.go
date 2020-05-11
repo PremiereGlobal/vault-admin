@@ -96,9 +96,9 @@ func GetSecretListKeyInfo(path string, v interface{}) (map[string]interface{}, e
 	return secretMap, nil
 }
 
-func getSecretList(path string) (bool, []string) {
+func getSecretList(path string) SecretList {
 
-	var secretArray []string
+	var secretList SecretList
 
 	// Read secrets from Vault for substitution
 	secret, err := Vault.List(path)
@@ -113,7 +113,7 @@ func getSecretList(path string) (bool, []string) {
 				for _, k := range value {
 					switch key := k.(type) {
 					case string:
-						secretArray = append(secretArray, string(key))
+						secretList = append(secretList, string(key))
 					default:
 						log.Fatal("Issue parsing Vault secret list [" + path + "] [error 001]")
 					}
@@ -123,10 +123,10 @@ func getSecretList(path string) (bool, []string) {
 			}
 		}
 	} else {
-		return false, nil
+		return nil
 	}
 
-	return true, secretArray
+	return secretList
 }
 
 func performSubstitutions(content *string, secretPath string) (bool, string) {

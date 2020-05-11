@@ -2,9 +2,10 @@ package main
 
 import (
 	"encoding/json"
-	log "github.com/sirupsen/logrus"
 	VaultApi "github.com/hashicorp/vault/api"
+	log "github.com/sirupsen/logrus"
 	"io/ioutil"
+	"path"
 	"path/filepath"
 )
 
@@ -125,6 +126,13 @@ func configureAuthMethods(authMethodList authMethodList) {
 		} else if mount.AuthOptions.Type == "ldap" {
 			log.Info("Running additional configuration for ", mount.Path)
 			configureLDAPAuth(mount)
+		} else if mount.AuthOptions.Type == "jwt" || mount.AuthOptions.Type == "oidc" {
+			authMethodJWT := AuthMethodJWT{
+				Path:             path.Join("auth", mount.Path),
+				AdditionalConfig: mount.AdditionalConfig,
+			}
+			log.Infof("Running additional configuration for [%s]", authMethodJWT.Path)
+			authMethodJWT.Configure()
 		} else {
 			log.Warn("Auth types other than LDAP not currently configurable, please open PR!")
 		}

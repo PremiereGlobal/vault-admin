@@ -1,7 +1,8 @@
 ## 0.4.0
 FEATURES:
 * Added support for Identity Group Aliases and Identity Group of Groups
-* Added concurrency.  By default, `vault-admin` will use 5 "threads" to process specific config items (currently only Identity secrets engine).  This count can be configured with the `-n`/`--concurrent` command line flags.
+* Added support for JWT/OIDC auth backend roles
+* Added concurrency.  By default, `vault-admin` will use 5 "threads" to process specific config items (currently only Identity secrets engine and JWT/OIDC roles).  This count can be configured with the `-n`/`--concurrent` command line flags.
   * Note: Concurrency changes the order of operations for some actions. This should not pose any problems but any user prompts will now be held off until the end of the run.
 
 IMPROVEMENTS:

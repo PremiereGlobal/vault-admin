@@ -16,17 +16,6 @@ import (
 // This is our identity waitgroup used to halt progress between blocking async tasks within identity
 var identWG sync.WaitGroup
 
-type taskWrite struct {
-	Path        string
-	Description string
-	Data        map[string]interface{}
-}
-
-type taskDelete struct {
-	Description string
-	Path        string
-}
-
 type IdentitySecretsEngine struct {
 	// The mountpath of the identity engine (i.e. /identity)
 	MountPath string
@@ -141,6 +130,7 @@ func (ident *IdentitySecretsEngine) processEntities() {
 				Path:        path.Join(ident.MountPath, "entity/name", entityName),
 				Description: fmt.Sprintf("Identity entity [%s]", entityName),
 				Data:        structToMap(config.Entity),
+				Defer:       func() { identWG.Done() },
 			}
 			wg.Add(1)
 			identWG.Add(1)
@@ -244,6 +234,7 @@ func (ident *IdentitySecretsEngine) processGroups() {
 					Path:        path.Join(ident.MountPath, "group/name/", groupName),
 					Description: fmt.Sprintf("Identity group [%s]", groupName),
 					Data:        structToMap(config.Group),
+					Defer:       func() { identWG.Done() },
 				}
 				wg.Add(1)
 				identWG.Add(1)
@@ -331,15 +322,11 @@ func (ident *IdentitySecretsEngine) applyGroupUpdates() {
 			Path:        path.Join(ident.MountPath, "group/name/", groupName),
 			Description: fmt.Sprintf("Identity group [%s]", groupName),
 			Data:        structToMap(ident.groups[groupName]),
+			Defer:       func() { identWG.Done() },
 		}
 		wg.Add(1)
 		identWG.Add(1)
 		taskChan <- task
-
-		// task := taskGroupWriter{MountPath: ident.MountPath, Group: ident.groups[groupName]}
-		// wg.Add(1)
-		// identWG.Add(1)
-		// taskChan <- task
 	}
 
 	// Warn of any groups or entities trying to be a member of a group that doens't exist
@@ -398,6 +385,7 @@ func (ident *IdentitySecretsEngine) processAliases() {
 				Path:        path.Join(ident.MountPath, fmt.Sprintf("%s-alias", "entity")),
 				Description: fmt.Sprintf("Identity %s alias [%s/%s]", "entity", aliasData.MountAccessor, aliasData.Name),
 				Data:        structToMap(aliasData.CleanFields()),
+				Defer:       func() { identWG.Done() },
 			}
 			wg.Add(1)
 			identWG.Add(1)
@@ -416,6 +404,7 @@ func (ident *IdentitySecretsEngine) processAliases() {
 				Path:        path.Join(ident.MountPath, fmt.Sprintf("%s-alias", "group")),
 				Description: fmt.Sprintf("Identity %s alias [%s/%s]", "group", aliasData.MountAccessor, aliasData.Name),
 				Data:        structToMap(aliasData.CleanFields()),
+				Defer:       func() { identWG.Done() },
 			}
 			wg.Add(1)
 			identWG.Add(1)
@@ -509,31 +498,4 @@ func (ident *IdentitySecretsEngine) fetchAuthMounts() {
 	if err := json.Unmarshal(jsondata, &ident.authMounts); err != nil {
 		log.Fatalf("Unable to unmarshall auth mounts: %v", err)
 	}
-}
-
-func (t taskWrite) run(workerNum int) bool {
-	defer wg.Done()
-	defer identWG.Done()
-	log.Debugf("{%d} Writing %s", workerNum, t.Description)
-	_, err := Vault.Write(t.Path, t.Data)
-	if err != nil {
-		log.Fatalf("Error writing %s: %v", t.Description, err)
-		return false
-	}
-
-	return true
-}
-
-func (t taskDelete) run(workerNum int) bool {
-	log.Infof("{%d} %s does not exist in configuration, prompting to delete", workerNum, t.Description)
-	if askForConfirmation(fmt.Sprintf("Delete %s [y/n]?: ", t.Description), 3) {
-		_, err := Vault.Delete(t.Path)
-		if err != nil {
-			log.Fatalf("Error deleting %s: %v", t.Description, err)
-		}
-		log.Infof("%s deleted", t.Description)
-	} else {
-		log.Infof("Leaving %s even though it is not in config", t.Description)
-	}
-	return true
 }
