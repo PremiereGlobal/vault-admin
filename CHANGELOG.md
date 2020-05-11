@@ -1,3 +1,7 @@
+## 0.5.0
+IMPROVEMENTS:
+* Added concurrency for policies, AWS roles 
+
 ## 0.4.0
 FEATURES:
 * Added support for Identity Group Aliases and Identity Group of Groups
