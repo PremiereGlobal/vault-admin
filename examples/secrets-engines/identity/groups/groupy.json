@@ -2,10 +2,10 @@
   "group": {
     "type": "internal",
     "metadata": {
-      "description": "This is Group Y"
+      "description": "This is a description of this group"
     },
     "policies": [
-      "vault-admin"
+      "group-qa"
     ]
   }
 }

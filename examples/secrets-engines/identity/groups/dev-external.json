@@ -1,0 +1,18 @@
+{
+  "group": {
+    "type": "external",
+    "metadata": {
+      "description": "This is a description of this group"
+    },
+    "policies": [
+      "vault-admin"
+    ]
+  },
+  "group-groups": [
+    "dev"
+  ],
+  "group-alias": {
+    "name": "dev",
+    "mount_path": "ldap/"
+  }
+}

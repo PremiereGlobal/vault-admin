@@ -21,4 +21,3 @@ ENV CONFIGURATION_PATH=/config
 COPY --from=builder /vault-admin/vadmin /usr/bin
 
 ENTRYPOINT ["/usr/bin/vadmin"]
-CMD ["-h"]

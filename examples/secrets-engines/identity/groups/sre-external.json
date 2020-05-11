@@ -1,0 +1,15 @@
+{
+  "group": {
+    "type": "external",
+    "metadata": {
+      "description": "This is a description of this group"
+    }
+  },
+  "group-groups": [
+    "sre"
+  ],
+  "group-alias": {
+    "name": "userpass-group-name",
+    "mount_path": "userpass/"
+  }
+}

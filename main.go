@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	VaultApi "github.com/hashicorp/vault/api"
 	GoFlags "github.com/jessevdk/go-flags"
 	envconfig "github.com/kelseyhightower/envconfig"
 	"os"
 	"reflect"
+	"strconv"
+	"sync"
 )
 
 // Application options
@@ -18,6 +20,7 @@ type Specification struct {
 	VaultSkipVerify     bool   `envconfig:"VAULT_SKIP_VERIFY" short:"K" long:"skip-verify" description:"Skip Vault TLS certificate verification"`
 	VaultSecretBasePath string `envconfig:"VAULT_SECRET_BASE_PATH" short:"s" long:"vault-secret-base-path" description:"Base secret path, in Vault, to pull secrets for substitution" vdefault:"secret/vault-admin/"`
 	RotateCreds         bool   `short:"r" long:"rotate-creds" description:"Rotates AWS root credentials" vdefault:"false"`
+	Concurrency         string `short:"n" long:"concurrent" description:"Number of concurrent threads to run (default: 5)" vdefault:"5"`
 	Debug               bool   `envconfig:"DEBUG" short:"d" long:"debug" description:"Turn on debug logging"`
 	Version             bool   `short:"v" long:"version" description:"Display the version of the tool"`
 	CurrentVersion      string
@@ -28,6 +31,21 @@ var VaultClient *VaultApi.Client
 var Vault *VaultApi.Logical
 var VaultSys *VaultApi.Sys
 var Spec Specification
+
+// This is our main waitgroup that counts items added/removed from the process
+// queue.  When this gets to 0, we're done
+var wg sync.WaitGroup
+
+// task is an arbitrary item that needs to processed
+type task interface {
+	run(int) bool
+}
+
+// Our main task channel
+var taskChan chan task
+
+// Our user input task channel
+var taskPromptChan chan task
 
 func main() {
 
@@ -107,11 +125,37 @@ func main() {
 	if Spec.RotateCreds {
 		RotateCreds()
 	} else {
+
+		// Create our channels that will buffer up to x tasks at a time
+		taskChan = make(chan task, 2000)
+		taskPromptChan = make(chan task, 10000)
+
+		// Start the workers
+		log.Debugf("Setting concurrency to %s threads", Spec.Concurrency)
+		workerCount, err := strconv.Atoi(Spec.Concurrency)
+		if err != nil {
+			log.Fatalf("Invalid value '%v' for concurrency", Spec.Concurrency)
+		}
+		for i := 0; i < workerCount; i++ {
+			go worker(i, taskChan)
+		}
+
 		// Call sync methods
 		SyncAuditDevices()
 		SyncAuthMethods()
 		SyncPolicies()
 		SyncSecretsEngines()
+
+		// Now wait for all the tasks to finish
+		wg.Wait()
+
+		// Close the prompt channel so once we're done processing the loop below, we'll be done
+		close(taskPromptChan)
+
+		// Now run through any user prompt messages needed
+		for taskPrompt := range taskPromptChan {
+			taskPrompt.run(0)
+		}
 	}
 
 	log.Info("Done")
@@ -157,5 +201,13 @@ func checkRequired(spec *Specification) {
 				log.Fatal(field.Name + " required but not set. Use environment variable " + field.Tag.Get("envconfig") + " or command line options: --" + field.Tag.Get("long") + ", -" + field.Tag.Get("short"))
 			}
 		}
+	}
+}
+
+// worker is the main worker function that processes all tasks
+// This will be called in a goroutine
+func worker(workerNum int, taskChan <-chan task) {
+	for task := range taskChan {
+		task.run(workerNum)
 	}
 }

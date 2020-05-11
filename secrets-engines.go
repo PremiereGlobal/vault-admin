@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	VaultApi "github.com/hashicorp/vault/api"
 	"io/ioutil"
 )
@@ -97,7 +97,8 @@ func ConfigureSecretsEngines(secretsEnginesList SecretsEnginesList) {
 
 		if secretsEngine.Path == "identity/" {
 			log.Info("Configuring Identity backend ", secretsEngine.Path)
-			configureIdentitySecretsEngine(secretsEngine)
+			e := IdentitySecretsEngine{MountPath: secretsEngine.Path}
+			e.run()
 		} else if secretsEngine.MountInput.Type == "aws" {
 			log.Info("Configuring AWS backend ", secretsEngine.Path)
 			ConfigureAwsSecretsEngine(secretsEngine)
@@ -105,7 +106,7 @@ func ConfigureSecretsEngines(secretsEnginesList SecretsEnginesList) {
 			log.Info("Configuring database backend ", secretsEngine.Path)
 			ConfigureDatabaseSecretsEngine(secretsEngine)
 		} else {
-			log.Warn("Secrets engine types other than [aws] and [database] not currently configurable, please open PR!")
+			log.Warn("Secrets engine types other than 'aws', 'database' and 'identity' not currently configurable, please open PR!")
 		}
 	}
 }

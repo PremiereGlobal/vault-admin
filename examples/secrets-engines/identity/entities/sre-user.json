@@ -1,0 +1,20 @@
+{
+  "entity": {
+    "metadata": {
+      "test1": "test"
+    },
+    "policies": [
+      "group-default"
+    ],
+    "disabled": false
+  },
+  "entity-aliases": [
+    {
+      "name": "sre-user",
+      "mount_path": "userpass/"
+    }
+  ],
+  "entity-groups": [
+    "sre"
+  ]
+}

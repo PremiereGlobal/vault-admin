@@ -1,0 +1,14 @@
+{
+  "group": {
+    "type": "internal",
+    "metadata": {
+      "description": "This is a description of this group test"
+    },
+    "policies": [
+      "vault-admin"
+    ]
+  },
+  "group-groups": [
+    "engineering"
+  ]
+}

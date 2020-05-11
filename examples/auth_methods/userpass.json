@@ -21,6 +21,11 @@
         ]
       },
       {
+        "username": "sre-user",
+        "password": "test",
+        "policies": "default"
+      },
+      {
         "username": "userB",
         "password": "test",
         "policies": "default, group-developers"

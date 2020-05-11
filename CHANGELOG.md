@@ -1,3 +1,16 @@
+## 0.4.0
+FEATURES:
+* Added support for Identity Group Aliases and Identity Group of Groups
+* Added concurrency.  By default, `vault-admin` will use 5 "threads" to process specific config items (currently only Identity secrets engine).  This count can be configured with the `-n`/`--concurrent` command line flags.
+  * Note: Concurrency changes the order of operations for some actions. This should not pose any problems but any user prompts will now be held off until the end of the run.
+
+IMPROVEMENTS:
+* Added documentation for the Identity secrets backend
+
+BUGFIX:
+* Identity secrets backend now cleans up entity aliases correctly
+* Fixed bug introduced in v0.3.1 where the Docker container did not run vault-admin when started with no "CMD" parameter.
+
 ## 0.3.1
 
 BUGFIXES:
