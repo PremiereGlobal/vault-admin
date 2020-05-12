@@ -2,8 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	log "github.com/sirupsen/logrus"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"path"
 	"strconv"
@@ -32,13 +32,13 @@ type AwsConfigLease struct {
 }
 
 type awsRoleEntry struct {
-	CredentialType string        `json:"credential_type",yaml:"credential_type"`           // Entries must all be in the set of ("iam_user", "assumed_role", "federation_token")
-	PolicyArns     []string      `json:"policy_arns",yaml:"policy_arns"`               // ARNs of managed policies to attach to an IAM user
-	RoleArns       []string      `json:"role_arns,yaml:"role_arns"`                 // ARNs of roles to assume for AssumedRole credentials
-	PolicyDocument string        `json:"policy_document",yaml:"policy_document"`           // JSON-serialized inline policy to attach to IAM users and/or to specify as the Policy parameter in AssumeRole calls
-	RawPolicy      interface{}   `json:"raw_policy,omitempty",yaml:"raw_policy,omitempty"`      // Custom field to allow policy to be entered as json as opposed to having to escape it
+	CredentialType string        `json:"credential_type",yaml:"credential_type"`                     // Entries must all be in the set of ("iam_user", "assumed_role", "federation_token")
+	PolicyArns     []string      `json:"policy_arns",yaml:"policy_arns"`                             // ARNs of managed policies to attach to an IAM user
+	RoleArns       []string      `json:"role_arns,yaml:"role_arns"`                                  // ARNs of roles to assume for AssumedRole credentials
+	PolicyDocument string        `json:"policy_document",yaml:"policy_document"`                     // JSON-serialized inline policy to attach to IAM users and/or to specify as the Policy parameter in AssumeRole calls
+	RawPolicy      interface{}   `json:"raw_policy,omitempty",yaml:"raw_policy,omitempty"`           // Custom field to allow policy to be entered as json as opposed to having to escape it
 	DefaultSTSTTL  time.Duration `json:"default_sts_ttl,omitempty",yaml:"default_sts_ttl,omitempty"` // Default TTL for STS credentials
-	MaxSTSTTL      time.Duration `json:"max_sts_ttl,omitempty",yaml:"max_sts_ttl,omitempty"`     // Max allowed TTL for STS credentials
+	MaxSTSTTL      time.Duration `json:"max_sts_ttl,omitempty",yaml:"max_sts_ttl,omitempty"`         // Max allowed TTL for STS credentials
 }
 
 func ConfigureAwsSecretsEngine(secretsEngine SecretsEngine) {
@@ -77,20 +77,29 @@ func ConfigureAwsSecretsEngine(secretsEngine SecretsEngine) {
 	// or if the overwrite_root_config flag is set
 	if secretsEngine.JustEnabled == true || secretsEngineAWS.OverwriteRootCredentials == true {
 		log.Debug("Writing root config for [" + secretsEngine.Path + "]. JustEnabled=" + strconv.FormatBool(secretsEngine.JustEnabled) + ", OverwriteRootCredentials=" + strconv.FormatBool(secretsEngineAWS.OverwriteRootCredentials))
-		err = writeStructToVault(secretsEngine.Path+"/config/root", secretsEngineAWS.RootConfig)
-		if err != nil {
-			log.Fatal("Error writing root config for ["+secretsEngine.Path+"]", err)
+
+		rootConfigPath := path.Join(secretsEngine.Path, "config/root")
+		task := taskWrite{
+			Path:        rootConfigPath,
+			Description: fmt.Sprintf("AWS root config [%s]", rootConfigPath),
+			Data:        structToMap(secretsEngineAWS.RootConfig),
 		}
+		wg.Add(1)
+		taskChan <- task
+
 	} else {
 		log.Debug("Root config exists for [" + secretsEngine.Path + "], skipping...")
 	}
 
 	// Write config lease
-	log.Debug("Writing config lease for [" + secretsEngine.Path + "]")
-	err = writeStructToVault(secretsEngine.Path+"/config/lease", secretsEngineAWS.ConfigLease)
-	if err != nil {
-		log.Fatal("Error writing config lease for ["+secretsEngine.Path+"]", err)
+	configLeasePath := path.Join(secretsEngine.Path, "config/lease")
+	task := taskWrite{
+		Path:        configLeasePath,
+		Description: fmt.Sprintf("AWS root config [%s]", configLeasePath),
+		Data:        structToMap(secretsEngineAWS.ConfigLease),
 	}
+	wg.Add(1)
+	taskChan <- task
 
 	// Create/Update Roles
 	for role_name, role := range secretsEngineAWS.Roles {

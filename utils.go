@@ -156,43 +156,6 @@ func performSubstitutions(content *string, secretPath string) (bool, string) {
 	return true, ""
 }
 
-func writeStructToVault(path string, data interface{}) error {
-
-	// Marshal structure to get it back to JSON formatted keys
-	jsondata, err := json.Marshal(data)
-	if err != nil {
-		return err
-	}
-	var dataMap map[string]interface{}
-
-	if err := json.Unmarshal(jsondata, &dataMap); err != nil {
-		return err
-	}
-
-	_, err = Vault.Write(path, dataMap)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func writeStringToVault(path string, data string) error {
-
-	var dataMap map[string]interface{}
-
-	if err := json.Unmarshal([]byte(data), &dataMap); err != nil {
-		return err
-	}
-
-	_, err := Vault.Write(path, dataMap)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func checkExt(filename string, ext string) bool {
 	if filepath.Ext(filename) == ext {
 		return true

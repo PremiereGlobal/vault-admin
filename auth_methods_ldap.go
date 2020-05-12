@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	log "github.com/sirupsen/logrus"
+	"path"
 )
 
 type LdapPolicyMap map[string]LdapPolicyItem
@@ -47,50 +49,49 @@ func getLdapPolicies(ldapPolicyMap LdapPolicyMap, policyMap map[string]interface
 	}
 }
 
-func configureLdapPolicies(path string, ldapPolicyMap LdapPolicyMap) {
-
-	log.Debug("Writing LDAP Group -> Policy mappings for " + path)
+func configureLdapPolicies(authPath string, ldapPolicyMap LdapPolicyMap) {
 	for ldap_name, ldapPolicyItem := range ldapPolicyMap {
-
-		log.Debug("LDAP Group ["+ldap_name+"] -> Policies ", ldapPolicyItem.Policies, " ["+path+"]")
-
-		// Write the group policies to Vault
-		_, err := Vault.Write("/auth/"+path+"groups/"+ldap_name, map[string]interface{}{"policies": ldapPolicyItem.Policies})
-		if err != nil {
-			log.Fatal("Error writing ldap group mapping ["+path+ldap_name+"]", err)
+		groupPath := path.Join("auth", authPath, "groups", ldap_name)
+		task := taskWrite{
+			Path:        groupPath,
+			Description: fmt.Sprintf("LDAP group policy map [%s] ", groupPath),
+			Data:        map[string]interface{}{"policies": ldapPolicyItem.Policies},
 		}
+		wg.Add(1)
+		taskChan <- task
 	}
 }
 
-func cleanupLdapPolicies(path string, ldapPolicyMap LdapPolicyMap) {
-	existing_groups, _ := Vault.List("/auth/" + path + "groups")
+func cleanupLdapPolicies(authPath string, ldapPolicyMap LdapPolicyMap) {
+	existing_groups, err := Vault.List("/auth/" + authPath + "groups")
+	if err != nil {
+		log.Fatalf("Error fetching LDAP groups [%s]", "/auth/"+authPath+"groups")
+	}
 
-	for _, v := range existing_groups.Data {
-		switch ldapGroups := v.(type) {
-		case []interface{}:
-			for _, groupArrayValue := range ldapGroups {
-				switch group_name := groupArrayValue.(type) {
-				case string:
-					if _, ok := ldapPolicyMap[group_name]; ok {
-						log.Debug("LDAP group mapping [" + group_name + "] exists in configuration, no cleanup necessary")
-					} else {
-						log.Info("LDAP group mapping [" + group_name + "] does not exist in configuration, prompting to delete")
-						if askForConfirmation("Delete LDAP group mapping ["+group_name+"] [y/n]?: ", 3) {
-							_, err := Vault.Delete("/auth/" + path + "groups/" + group_name)
-							if err != nil {
-								log.Fatal("Error deleting LDAP group mapping ["+group_name+"] ", err)
-							}
-							log.Info("LDAP group mapping [" + group_name + "] deleted")
+	if existing_groups != nil {
+		for _, v := range existing_groups.Data {
+			switch ldapGroups := v.(type) {
+			case []interface{}:
+				for _, groupArrayValue := range ldapGroups {
+					switch group_name := groupArrayValue.(type) {
+					case string:
+						if _, ok := ldapPolicyMap[group_name]; ok {
+							log.Debug("LDAP group mapping [" + group_name + "] exists in configuration, no cleanup necessary")
 						} else {
-							log.Info("Leaving LDAP group mapping [" + group_name + "] even though it is not in config")
+							groupPath := path.Join("auth", authPath, "groups", group_name)
+							task := taskDelete{
+								Description: fmt.Sprintf("LDAP group policy map [%s]", groupPath),
+								Path:        groupPath,
+							}
+							taskPromptChan <- task
 						}
+					default:
+						log.Fatal("Issue parsing LDAP groups mapping from Vault [error 002]")
 					}
-				default:
-					log.Fatal("Issue parsing LDAP groups mapping from Vault [error 002]")
 				}
+			default:
+				log.Fatal("Issue parsing LDAP groups mapping from Vault [error 001]")
 			}
-		default:
-			log.Fatal("Issue parsing LDAP groups mapping from Vault [error 001]")
 		}
 	}
 }

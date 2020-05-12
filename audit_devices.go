@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	VaultApi "github.com/hashicorp/vault/api"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
+	"path"
 	"path/filepath"
 	"reflect"
 )
@@ -108,16 +110,12 @@ func CleanupAuditDevices(auditDeviceList AuditDeviceList) {
 		if _, ok := auditDeviceList[mountPath]; ok {
 			log.Debug("Audit device [" + mountPath + "] exists in configuration, no cleanup necessary")
 		} else {
-			log.Info("Audit device [" + mountPath + "] does not exist in configuration, prompting to delete")
-			if askForConfirmation("Delete audit device ["+mountPath+"] [y/n]?: ", 3) {
-				err := VaultSys.DisableAudit(mountPath)
-				if err != nil {
-					log.Fatal("Error deleting audit device ["+mountPath+"]", err)
-				}
-				log.Info("Audit device [" + mountPath + "] deleted")
-			} else {
-				log.Info("Leaving [" + mountPath + "] even though it does not match configuration")
+			auditPath := path.Join("sys/audit", mountPath)
+			task := taskDelete{
+				Description: fmt.Sprintf("Audit device [%s]", auditPath),
+				Path:        auditPath,
 			}
+			taskPromptChan <- task
 		}
 	}
 }
