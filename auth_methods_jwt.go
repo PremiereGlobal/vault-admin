@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/hashicorp/go-sockaddr"
-	log "github.com/sirupsen/logrus"
 	"encoding/json"
 	"fmt"
+	"github.com/hashicorp/go-sockaddr"
+	log "github.com/sirupsen/logrus"
 	"path"
 	"time"
 )

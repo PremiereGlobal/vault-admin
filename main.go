@@ -146,6 +146,8 @@ func main() {
 		SyncPolicies()
 		SyncSecretsEngines()
 
+		log.Info("Main processing complete - waiting for remaining tasks to complete")
+
 		// Now wait for all the tasks to finish
 		wg.Wait()
 

@@ -2,9 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
-	"path/filepath"
+	"path"
 	"strconv"
 	"time"
 )
@@ -31,13 +32,13 @@ type AwsConfigLease struct {
 }
 
 type awsRoleEntry struct {
-	CredentialType string        `json:"credential_type"`           // Entries must all be in the set of ("iam_user", "assumed_role", "federation_token")
-	PolicyArns     []string      `json:"policy_arns"`               // ARNs of managed policies to attach to an IAM user
-	RoleArns       []string      `json:"role_arns"`                 // ARNs of roles to assume for AssumedRole credentials
-	PolicyDocument string        `json:"policy_document"`           // JSON-serialized inline policy to attach to IAM users and/or to specify as the Policy parameter in AssumeRole calls
-	RawPolicy      interface{}   `json:"raw_policy,omitempty"`      // Custom field to allow policy to be entered as json as opposed to having to escape it
-	DefaultSTSTTL  time.Duration `json:"default_sts_ttl,omitempty"` // Default TTL for STS credentials
-	MaxSTSTTL      time.Duration `json:"max_sts_ttl,omitempty"`     // Max allowed TTL for STS credentials
+	CredentialType string        `json:"credential_type",yaml:"credential_type"`                     // Entries must all be in the set of ("iam_user", "assumed_role", "federation_token")
+	PolicyArns     []string      `json:"policy_arns",yaml:"policy_arns"`                             // ARNs of managed policies to attach to an IAM user
+	RoleArns       []string      `json:"role_arns,yaml:"role_arns"`                                  // ARNs of roles to assume for AssumedRole credentials
+	PolicyDocument string        `json:"policy_document",yaml:"policy_document"`                     // JSON-serialized inline policy to attach to IAM users and/or to specify as the Policy parameter in AssumeRole calls
+	RawPolicy      interface{}   `json:"raw_policy,omitempty",yaml:"raw_policy,omitempty"`           // Custom field to allow policy to be entered as json as opposed to having to escape it
+	DefaultSTSTTL  time.Duration `json:"default_sts_ttl,omitempty",yaml:"default_sts_ttl,omitempty"` // Default TTL for STS credentials
+	MaxSTSTTL      time.Duration `json:"max_sts_ttl,omitempty",yaml:"max_sts_ttl,omitempty"`         // Max allowed TTL for STS credentials
 }
 
 func ConfigureAwsSecretsEngine(secretsEngine SecretsEngine) {
@@ -76,26 +77,40 @@ func ConfigureAwsSecretsEngine(secretsEngine SecretsEngine) {
 	// or if the overwrite_root_config flag is set
 	if secretsEngine.JustEnabled == true || secretsEngineAWS.OverwriteRootCredentials == true {
 		log.Debug("Writing root config for [" + secretsEngine.Path + "]. JustEnabled=" + strconv.FormatBool(secretsEngine.JustEnabled) + ", OverwriteRootCredentials=" + strconv.FormatBool(secretsEngineAWS.OverwriteRootCredentials))
-		err = writeStructToVault(secretsEngine.Path+"/config/root", secretsEngineAWS.RootConfig)
-		if err != nil {
-			log.Fatal("Error writing root config for ["+secretsEngine.Path+"]", err)
+
+		rootConfigPath := path.Join(secretsEngine.Path, "config/root")
+		task := taskWrite{
+			Path:        rootConfigPath,
+			Description: fmt.Sprintf("AWS root config [%s]", rootConfigPath),
+			Data:        structToMap(secretsEngineAWS.RootConfig),
 		}
+		wg.Add(1)
+		taskChan <- task
+
 	} else {
 		log.Debug("Root config exists for [" + secretsEngine.Path + "], skipping...")
 	}
 
 	// Write config lease
-	log.Debug("Writing config lease for [" + secretsEngine.Path + "]")
-	err = writeStructToVault(secretsEngine.Path+"/config/lease", secretsEngineAWS.ConfigLease)
-	if err != nil {
-		log.Fatal("Error writing config lease for ["+secretsEngine.Path+"]", err)
+	configLeasePath := path.Join(secretsEngine.Path, "config/lease")
+	task := taskWrite{
+		Path:        configLeasePath,
+		Description: fmt.Sprintf("AWS root config [%s]", configLeasePath),
+		Data:        structToMap(secretsEngineAWS.ConfigLease),
 	}
+	wg.Add(1)
+	taskChan <- task
 
 	// Create/Update Roles
-	log.Debug("Writing AWS roles for [" + secretsEngine.Path + "]")
 	for role_name, role := range secretsEngineAWS.Roles {
-		log.Debug("Writing AWS role [" + role_name + "] to [" + secretsEngine.Path + "]")
-		err = writeStructToVault(secretsEngine.Path+"roles/"+role_name, role)
+		rolePath := path.Join(secretsEngine.Path, "roles", role_name)
+		task := taskWrite{
+			Path:        rolePath,
+			Description: fmt.Sprintf("AWS role [%s]", rolePath),
+			Data:        structToMap(role),
+		}
+		wg.Add(1)
+		taskChan <- task
 		if err != nil {
 			log.Fatal("Error creating/updating role ["+role_name+"] at ["+secretsEngine.Path+"]", err)
 		}
@@ -109,39 +124,26 @@ func getAwsRoles(secretsEngine *SecretsEngine, secretsEngineAWS *SecretsEngineAW
 
 	secretsEngineAWS.Roles = make(map[string]awsRoleEntry)
 
-	files, err := ioutil.ReadDir(Spec.ConfigurationPath + "/secrets-engines/" + secretsEngine.Path + "roles")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for _, file := range files {
-
-		success, content := getJsonFile(Spec.ConfigurationPath + "/secrets-engines/" + secretsEngine.Path + "roles/" + file.Name())
-		if success {
-			var r awsRoleEntry
-
-			filename := file.Name()
-			role_name := filename[0 : len(filename)-len(filepath.Ext(filename))]
-			err = json.Unmarshal([]byte(content), &r)
-			if err != nil {
-				log.Fatal("Error parsing role policy  ["+secretsEngine.Path+"roles/"+role_name+"]", err)
-			}
-
-			// Marshal the raw policy document to a string
-			if r.RawPolicy != nil {
-				raw_policy, err := json.Marshal(r.RawPolicy)
-				if err != nil {
-					log.Fatal("Error parsing raw policy statement in "+file.Name()+" ", err)
-				}
-				r.PolicyDocument = string(raw_policy)
-				r.RawPolicy = nil
-			}
-
-			secretsEngineAWS.Roles[role_name] = r
-
-		} else {
-			log.Warn("AWS Role file has wrong extension.  Will not be processed: ", file.Name())
+	roleConfigDirPath := path.Join(Spec.ConfigurationPath, "secrets-engines", secretsEngine.Path, "roles")
+	rawRoles := processDirectoryRaw(roleConfigDirPath)
+	for roleName, rawRole := range rawRoles {
+		var role awsRoleEntry
+		err := json.Unmarshal(rawRole, &role)
+		if err != nil {
+			log.Fatalf("Error parsing AWS role [%s]: %v", path.Join(roleConfigDirPath, roleName), err)
 		}
+
+		// Marshal the raw policy document to a string
+		if role.RawPolicy != nil {
+			raw_policy, err := json.Marshal(role.RawPolicy)
+			if err != nil {
+				log.Fatalf("Error parsing AWS role raw policy statement in [%s]: %v", path.Join(roleConfigDirPath, roleName), err)
+			}
+			role.PolicyDocument = string(raw_policy)
+			role.RawPolicy = nil
+		}
+
+		secretsEngineAWS.Roles[roleName] = role
 	}
 }
 
@@ -154,16 +156,11 @@ func cleanupAwsRoles(secretsEngine SecretsEngine, secretsEngineAWS SecretsEngine
 			if _, ok := secretsEngineAWS.Roles[role]; ok {
 				log.Debug("[" + rolePath + "] exists in configuration, no cleanup necessary")
 			} else {
-				log.Debug("[" + rolePath + "] does not exist in configuration, prompting to delete")
-				if askForConfirmation("Role ["+rolePath+"] does not exist in configuration.  Delete [y/n]?: ", 3) {
-					_, err := Vault.Delete(rolePath)
-					if err != nil {
-						log.Fatal("Error deleting role ["+rolePath+"]", err)
-					}
-					log.Info("[" + rolePath + "] deleted")
-				} else {
-					log.Info("Leaving [" + rolePath + "] even though it is not in configuration")
+				task := taskDelete{
+					Description: fmt.Sprintf("AWS role [%s]", rolePath),
+					Path:        rolePath,
 				}
+				taskPromptChan <- task
 			}
 		}
 	}

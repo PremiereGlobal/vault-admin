@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	VaultApi "github.com/hashicorp/vault/api"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
+	"path"
 )
 
 type SecretsEngine struct {
@@ -80,10 +82,14 @@ func ConfigureSecretsEngines(secretsEnginesList SecretsEnginesList) {
 				// This is needed because of the way creating new mounts differs from existing ones?
 				secretsEngine.MountInput.Config.Description = &secretsEngine.MountInput.Description
 
-				err := VaultSys.TuneMount(secretsEngine.Path, secretsEngine.MountInput.Config)
-				if err != nil {
-					log.Fatal("Error tuning secrets engine path ["+secretsEngine.Path+"]", err)
+				tunePath := path.Join("sys/mounts", secretsEngine.Path, "tune")
+				task := taskWrite{
+					Path:        tunePath,
+					Description: fmt.Sprintf("Secrets backend tune for [%s]", tunePath),
+					Data:        structToMap(secretsEngine.MountInput.Config),
 				}
+				wg.Add(1)
+				taskChan <- task
 			}
 		} else {
 			log.Debug("Secrets engine path [" + secretsEngine.Path + "] is not enabled, enabling")
@@ -114,24 +120,20 @@ func ConfigureSecretsEngines(secretsEnginesList SecretsEnginesList) {
 func CleanupSecretsEngines(secretsEnginesList SecretsEnginesList) {
 	existing_mounts, _ := VaultSys.ListMounts()
 
-	for path, mountOutput := range existing_mounts {
+	for mountPath, mountOutput := range existing_mounts {
 
 		// Ignore default mounts
 		// generic = old kv store
 		if !(mountOutput.Type == "system" || mountOutput.Type == "cubbyhole" || mountOutput.Type == "identity" || mountOutput.Type == "kv" || mountOutput.Type == "generic") {
-			if _, ok := secretsEnginesList[path]; ok {
-				log.Debug("Secrets engine [" + path + "] exists in configuration, no cleanup necessary")
+			if _, ok := secretsEnginesList[mountPath]; ok {
+				log.Debug("Secrets engine [" + mountPath + "] exists in configuration, no cleanup necessary")
 			} else {
-				log.Debug("Secrets engine [" + path + "] does not exist in configuration, prompting to delete")
-				if askForConfirmation("Secrets engine ["+path+"] does not exist in configuration. Delete [y/n]?: ", 3) {
-					err := VaultSys.Unmount(path)
-					if err != nil {
-						log.Fatal("Error deleting mount ", path, err)
-					}
-					log.Info("Secrets engine [" + path + "] deleted")
-				} else {
-					log.Info("Leaving secrets engine [" + path + "] even though it is not in config")
+				secretEnginePath := path.Join("sys/mounts", mountPath)
+				task := taskDelete{
+					Description: fmt.Sprintf("Secrets engine [%s]", secretEnginePath),
+					Path:        secretEnginePath,
 				}
+				taskPromptChan <- task
 			}
 		}
 	}

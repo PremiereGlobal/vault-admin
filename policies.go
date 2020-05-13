@@ -1,90 +1,51 @@
 package main
 
 import (
+	"fmt"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
-	"path/filepath"
+	"path"
 )
 
 type Policy struct {
-	Name  string
-	Rules string
+	Name           string `json:"name",yaml:"name"`
+	PolicyDocument string `json:"policy",yaml:"policy"`
 }
 
-type PolicyList map[string]Policy
+var policyList SecretList
 
 func SyncPolicies() {
 
-	policyList := PolicyList{}
-
 	log.Info("Syncing Policies")
-	GetPolicies(policyList)
-	WritePolicies(policyList)
-	CleanupPolicies(policyList)
-}
 
-func GetPolicies(policyList PolicyList) {
-	files, err := ioutil.ReadDir(Spec.ConfigurationPath + "/policies/")
-	if err != nil {
-		log.Warn("No policies found: ", err)
-	}
-
-	for _, file := range files {
-
-		if checkExt(file.Name(), ".json") {
-			content, err := ioutil.ReadFile(Spec.ConfigurationPath + "/policies/" + file.Name())
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			if !isJSON(string(content)) {
-				log.Fatal("Policy not valid JSON: ", file.Name())
-			}
-
-			var p Policy
-
-			filename := file.Name()
-			policy_name := filename[0 : len(filename)-len(filepath.Ext(filename))]
-			p.Rules = string(content)
-			policyList[policy_name] = p
-
-		} else {
-			log.Warn("Policy file has wrong extension.  Will not be processed: ", Spec.ConfigurationPath+"/policies/"+file.Name())
+	// Create/Update Policies
+	rawPolicies := processDirectoryRaw(path.Join(Spec.ConfigurationPath, "policies"))
+	for policyName, rawPolicyDocument := range rawPolicies {
+		policy := Policy{Name: policyName, PolicyDocument: string(rawPolicyDocument)}
+		policyPath := path.Join("sys/policies/acl", policy.Name)
+		task := taskWrite{
+			Path:        policyPath,
+			Description: fmt.Sprintf("Policy [%s]", policy.Name),
+			Data:        structToMap(policy),
 		}
-	}
-}
+		wg.Add(1)
+		taskChan <- task
 
-func WritePolicies(policyList PolicyList) {
-	log.Debug("Writing policies")
-	for policy_name, policy := range policyList {
-		err := VaultSys.PutPolicy(policy_name, policy.Rules)
-		if err != nil {
-			log.Fatal(err)
-		}
-		log.Debug("Wrote policy: ", policy_name)
+		policyList.Add(policyName)
 	}
-}
 
-func CleanupPolicies(policyList PolicyList) {
+	// Clean up Policies
 	existing_policies, _ := VaultSys.ListPolicies()
-
 	for _, policy := range existing_policies {
-
 		// Ignore root and default policies. These cannot be removed
 		if !(policy == "root" || policy == "default") {
-			if _, ok := policyList[policy]; ok {
+			if policyList.Contains(policy) {
 				log.Debug(policy + " exists in configuration, no cleanup necessary")
 			} else {
-				log.Debug(policy + " does not exist in configuration, prompting to delete")
-				if askForConfirmation("Policy ["+policy+"] does not exist in configuration.  Delete policy ["+policy+"] [y/n]?: ", 3) {
-					err := VaultSys.DeletePolicy(policy)
-					if err != nil {
-						log.Fatal("Error deleting policy ", policy, err)
-					}
-					log.Info("[" + policy + "] policy deleted")
-				} else {
-					log.Info("Leaving [" + policy + "] policy even though it is not in configuration")
+				task := taskDelete{
+					Description: fmt.Sprintf("Policy [%s]", policy),
+					Path:        path.Join("sys/policies/acl", policy),
 				}
+				taskPromptChan <- task
 			}
 		}
 	}

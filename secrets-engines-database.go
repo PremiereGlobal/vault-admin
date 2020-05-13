@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
+	"path"
 	"path/filepath"
 )
 
@@ -36,22 +39,40 @@ func ConfigureDatabaseSecretsEngine(secretsEngine SecretsEngine) {
 	// Get roles associated with this engine
 	getDatabaseRoles(&secretsEngine, &secretsEngineDatabase)
 
+	dbConfigPath := path.Join(secretsEngine.Path, "config/db")
+	var dbConfigMap map[string]interface{}
+	if err := json.Unmarshal([]byte(contentstring), &dbConfigMap); err != nil {
+		log.Fatalf("Database config [%s] failed to unmarshall after secret substitution", dbConfigPath)
+	}
+
 	// Write db config
 	// TODO: Add support for multiple dbs
-	log.Debug("Writing database config for [" + secretsEngine.Path + "/db]")
-	err = writeStringToVault(secretsEngine.Path+"/config/db", contentstring)
-	if err != nil {
-		log.Fatal("Error writing config for ["+secretsEngine.Path+"/db]", err)
+	task := taskWrite{
+		Path:        dbConfigPath,
+		Description: fmt.Sprintf("Database config [%s] ", dbConfigPath),
+		Data:        dbConfigMap,
 	}
+	wg.Add(1)
+	taskChan <- task
 
 	// Create/Update Roles
 	log.Debug("Writing database roles for [" + secretsEngine.Path + "]")
 	for role_name, role := range secretsEngineDatabase.Roles {
-		log.Debug("Writing database role [" + role_name + "] to [" + secretsEngine.Path + "]")
-		err = writeStringToVault(secretsEngine.Path+"roles/"+role_name, role)
-		if err != nil {
-			log.Fatal("Error creating/updating role ["+role_name+"] at ["+secretsEngine.Path+"]", err)
+
+		rolePath := path.Join(secretsEngine.Path, "roles", role_name)
+
+		var configMap map[string]interface{}
+		if err := json.Unmarshal([]byte(role), &configMap); err != nil {
+			log.Fatalf("Database role [%s] failed to unmarshall after secret substitution", rolePath)
 		}
+
+		task := taskWrite{
+			Path:        rolePath,
+			Description: fmt.Sprintf("Database role [%s] ", rolePath),
+			Data:        configMap,
+		}
+		wg.Add(1)
+		taskChan <- task
 	}
 
 	// Cleanup Roles
@@ -89,16 +110,11 @@ func cleanupDatabaseRoles(secretsEngine SecretsEngine, secretsEngineDatabase Sec
 			if _, ok := secretsEngineDatabase.Roles[role]; ok {
 				log.Debug("[" + rolePath + "] exists in configuration, no cleanup necessary")
 			} else {
-				log.Debug("[" + rolePath + "] does not exist in configuration, prompting to delete")
-				if askForConfirmation("Role ["+rolePath+"] does not exist in configuration.  Delete [y/n]?: ", 3) {
-					_, err := Vault.Delete(rolePath)
-					if err != nil {
-						log.Fatal("Error deleting role ["+rolePath+"]", err)
-					}
-					log.Info("[" + rolePath + "] deleted")
-				} else {
-					log.Info("Leaving [" + rolePath + "] even though it is not in configuration")
+				task := taskDelete{
+					Description: fmt.Sprintf("Database role [%s]", rolePath),
+					Path:        rolePath,
 				}
+				taskPromptChan <- task
 			}
 		}
 	}

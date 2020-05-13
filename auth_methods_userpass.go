@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	log "github.com/sirupsen/logrus"
+	"path"
 	"strings"
 )
 
@@ -27,52 +29,51 @@ func configureUserpassAuth(auth authMethod) {
 	cleanupUserpassUsers(auth.Path, userList)
 }
 
-func userpassAddUsers(path string, userList UserList) {
+func userpassAddUsers(authPath string, userList UserList) {
 	// Loop through the items and build the mapping list
 	for username, data := range userList {
-
-		// Assert our user object
-		u := data.(map[string]interface{})
-
-		// Write the user config
-		log.Debug("Writing user [" + username + "]...")
-		_, err := Vault.Write("/auth/"+path+"users/"+username, u)
-		if err != nil {
-			log.Fatal("Error writing userpass user", err)
+		userPath := path.Join("auth", authPath, "users", username)
+		task := taskWrite{
+			Path:        userPath,
+			Description: fmt.Sprintf("Userpass user [%s] ", userPath),
+			Data:        data.(map[string]interface{}),
 		}
+		wg.Add(1)
+		taskChan <- task
 	}
 }
 
-func cleanupUserpassUsers(path string, userList UserList) {
-	existing_users, _ := Vault.List("/auth/" + path + "users")
+func cleanupUserpassUsers(authPath string, userList UserList) {
+	existing_users, err := Vault.List("/auth/" + authPath + "users")
+	if err != nil {
+		log.Fatalf("Error fetching Userpass users [%s]", "/auth/"+authPath+"users")
+	}
 
-	for _, v := range existing_users.Data {
-		switch userpassUsers := v.(type) {
-		case []interface{}:
+	if existing_users != nil {
+		for _, v := range existing_users.Data {
+			switch userpassUsers := v.(type) {
+			case []interface{}:
 
-			for _, userpassUser := range userpassUsers {
-				switch username := userpassUser.(type) {
-				case string:
-					if _, ok := userList[username]; ok {
-						log.Debug("Userpass user [" + path + username + "] exists in configuration, no cleanup necessary")
-					} else {
-						log.Info("Userpass user [" + path + username + "] does not exist in configuration, prompting to delete")
-						if askForConfirmation("Delete Userpass user ["+path+username+"] [y/n]?: ", 3) {
-							_, err := Vault.Delete("/auth/" + path + "users/" + username)
-							if err != nil {
-								log.Fatal("Error deleting Userpass user ["+path+username+"] ", err)
-							}
-							log.Info("Userpass user [" + path + username + "] deleted")
+				for _, userpassUser := range userpassUsers {
+					switch username := userpassUser.(type) {
+					case string:
+						if _, ok := userList[username]; ok {
+							log.Debugf("Userpass user [%s%s] exists in configuration, no cleanup necessary", authPath, username)
 						} else {
-							log.Info("Leaving Userpass user [" + path + username + "] even though it is not in config")
+							userPath := path.Join("auth", authPath, "users", username)
+							task := taskDelete{
+								Description: fmt.Sprintf("Userpass user [%s]", userPath),
+								Path:        userPath,
+							}
+							taskPromptChan <- task
 						}
+					default:
+						log.Fatalf("Issue parsing Userpass user from Vault [%s]", authPath)
 					}
-				default:
-					log.Fatal("Issue parsing Userpass user from Vault [" + path + "]")
 				}
+			default:
+				log.Fatalf("Issue parsing Userpass users from Vault [%s]", authPath)
 			}
-		default:
-			log.Fatal("Issue parsing Userpass users from Vault [" + path + "]")
 		}
 	}
 }

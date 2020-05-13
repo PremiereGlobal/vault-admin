@@ -2,10 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	// "gopkg.in/yaml.v2"
 	"errors"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -154,43 +156,6 @@ func performSubstitutions(content *string, secretPath string) (bool, string) {
 	return true, ""
 }
 
-func writeStructToVault(path string, data interface{}) error {
-
-	// Marshal structure to get it back to JSON formatted keys
-	jsondata, err := json.Marshal(data)
-	if err != nil {
-		return err
-	}
-	var dataMap map[string]interface{}
-
-	if err := json.Unmarshal(jsondata, &dataMap); err != nil {
-		return err
-	}
-
-	_, err = Vault.Write(path, dataMap)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func writeStringToVault(path string, data string) error {
-
-	var dataMap map[string]interface{}
-
-	if err := json.Unmarshal([]byte(data), &dataMap); err != nil {
-		return err
-	}
-
-	_, err := Vault.Write(path, dataMap)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func checkExt(filename string, ext string) bool {
 	if filepath.Ext(filename) == ext {
 		return true
@@ -200,8 +165,15 @@ func checkExt(filename string, ext string) bool {
 }
 
 func isJSON(s string) bool {
-	var js map[string]interface{}
-	return json.Unmarshal([]byte(s), &js) == nil
+	var x map[string]interface{}
+	return json.Unmarshal([]byte(s), &x) == nil
+}
+
+func isYAML(s string) (bool, error) {
+	// var x map[string]interface{}
+	// err := yaml.Unmarshal([]byte(s), &x)
+	// return err == nil, err
+	return false, errors.New("YAML is not yet supported")
 }
 
 func askForConfirmation(msg string, max int) bool {
@@ -245,4 +217,44 @@ func structToMap(item interface{}) map[string]interface{} {
 	}
 
 	return mm
+}
+
+func processDirectoryRaw(dirPath string) map[string][]byte {
+
+	results := make(map[string][]byte)
+
+	files, err := ioutil.ReadDir(dirPath)
+	if err != nil {
+		log.Warnf("Error reading configuration directory [%s]: %v", dirPath, err)
+	}
+
+	for _, file := range files {
+		filePath := path.Join(dirPath, file.Name())
+		fileExtension := filepath.Ext(file.Name())
+		if fileExtension == ".json" || fileExtension == ".yaml" {
+			fileContent, err := ioutil.ReadFile(filePath)
+			if err != nil {
+				log.Fatalf("Error reading file [%s]: %v", filePath, err)
+			}
+
+			fileStringContent := string(fileContent)
+			if fileExtension == ".json" && !isJSON(fileStringContent) {
+				log.Fatalf("Configuration file [%s] is not valid JSON", filePath)
+			}
+			if fileExtension == ".yaml" {
+				_, err := isYAML(fileStringContent)
+				if err != nil {
+					log.Fatalf("Configuration file [%s] is not valid: %v", filePath, err)
+				}
+			}
+
+			itemName := strings.TrimSuffix(file.Name(), filepath.Ext(file.Name()))
+			results[itemName] = fileContent
+
+		} else {
+			log.Warnf("Configuration file [%s] does not have valid json/yaml extension and will not be processed", filePath)
+		}
+	}
+
+	return results
 }

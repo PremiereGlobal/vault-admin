@@ -1,3 +1,7 @@
+## 0.5.0
+IMPROVEMENTS:
+* Added concurrency for all audit devices, auth methods, secrets engines, and policies
+
 ## 0.4.0
 FEATURES:
 * Added support for Identity Group Aliases and Identity Group of Groups

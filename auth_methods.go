@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	VaultApi "github.com/hashicorp/vault/api"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
@@ -60,7 +61,7 @@ func getAuthMethods(authMethodList authMethodList) {
 
 			authMethodList[m.Path] = m
 		} else {
-			log.Warn("Auth file has wrong extension.  Will not be processed: ", Spec.ConfigurationPath+"/auth_methods/"+file.Name())
+			log.Warn("Auth file has wrong extension.  Will not be processed: ", Spec.ConfigurationPath+"auth_methods/"+file.Name())
 		}
 	}
 }
@@ -74,17 +75,21 @@ func configureAuthMethods(authMethodList authMethodList) {
 			if existing_mounts[mount.Path].Type != mount.AuthOptions.Type {
 				log.Fatal("Auth mount path  "+mount.Path+" exists but doesn't match type: ", existing_mounts[mount.Path].Type, "!=", mount.AuthOptions.Type)
 			}
-			log.Debug("Auth mount path " + mount.Path + " already enabled and type matches, tuning for any updates")
-
 			var mc VaultApi.MountConfigInput
 			mc.DefaultLeaseTTL = mount.AuthOptions.Config.DefaultLeaseTTL
 			mc.MaxLeaseTTL = mount.AuthOptions.Config.MaxLeaseTTL
 			mc.ListingVisibility = mount.AuthOptions.Config.ListingVisibility
 			mc.Description = &mount.AuthOptions.Description
-			err := VaultSys.TuneMount("/auth/"+mount.Path, mc)
-			if err != nil {
-				log.Fatal("Error tuning mount: ", mount.Path, " ", err)
+
+			tunePath := path.Join("sys/auth", mount.Path, "tune")
+			task := taskWrite{
+				Path:        tunePath,
+				Description: fmt.Sprintf("Auth mount tune for [%s]", tunePath),
+				Data:        structToMap(mc),
 			}
+			wg.Add(1)
+			taskChan <- task
+
 		} else {
 			log.Debug("Auth mount path " + mount.Path + " is not enabled, enabling")
 			err := VaultSys.EnableAuthWithOptions(mount.Path, &mount.AuthOptions)
@@ -106,17 +111,26 @@ func configureAuthMethods(authMethodList authMethodList) {
 			success, errMsg := performSubstitutions(&contentstring, "auth/"+mount.Name)
 			if !success {
 				log.Warn(errMsg)
-				log.Warn("Secret substitution failed for [" + mount.Path + "], skipping auth method configuration")
+				log.Warn("Secret substitution failed for [%s], skipping auth method configuration", mount.Path)
 				return
 			} else {
 				if !isJSON(contentstring) {
-					log.Fatal("Auth engine [" + mount.Path + "] is not a valid JSON after secret substitution")
+					log.Fatal("Auth engine [%s] is not a valid JSON after secret substitution", mount.Path)
 				}
-				log.Debug("Writing auth config for ", mount.Path)
-				err = writeStringToVault("/auth/"+mount.Path+"config", contentstring)
-				if err != nil {
-					log.Fatal("Error writing LDAP config for "+mount.Path+" ", err)
+
+				var configMap map[string]interface{}
+				if err := json.Unmarshal([]byte(contentstring), &configMap); err != nil {
+					log.Fatalf("Auth engine [%s] failed to unmarshall after secret substitution", mount.Path)
 				}
+
+				configPath := path.Join("auth", mount.Path, "config")
+				task := taskWrite{
+					Path:        configPath,
+					Description: fmt.Sprintf("Auth mount config for [%s]", configPath),
+					Data:        configMap,
+				}
+				wg.Add(1)
+				taskChan <- task
 			}
 		}
 
@@ -143,23 +157,19 @@ func configureAuthMethods(authMethodList authMethodList) {
 func cleanupAuthMethods(authMethodList authMethodList) {
 	existing_mounts, _ := VaultSys.ListAuth()
 
-	for path, mount := range existing_mounts {
+	for mountPath, mount := range existing_mounts {
 
 		// Ignore default token auth mount
-		if !(path == "token/" && mount.Type == "token") {
-			if _, ok := authMethodList[path]; ok {
-				log.Debug(path + " exists in configuration, no cleanup necessary")
+		if !(mountPath == "token/" && mount.Type == "token") {
+			if _, ok := authMethodList[mountPath]; ok {
+				log.Debug(mountPath + " exists in configuration, no cleanup necessary")
 			} else {
-				log.Info(path + " does not exist in configuration, prompting to delete")
-				if askForConfirmation("Delete auth mount "+path+" [y/n]?: ", 3) {
-					err := VaultSys.DisableAuth(path)
-					if err != nil {
-						log.Fatal("Error deleting auth mount ", path, err)
-					}
-					log.Info(path + " auth mount deleted")
-				} else {
-					log.Info("Leaving " + path + " even though it is not in config")
+				authPath := path.Join("sys/auth", mountPath)
+				task := taskDelete{
+					Description: fmt.Sprintf("Auth method [%s]", authPath),
+					Path:        authPath,
 				}
+				taskPromptChan <- task
 			}
 		}
 	}
