@@ -5,12 +5,13 @@ import (
 	// "gopkg.in/yaml.v2"
 	"errors"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func getJsonFile(path string) (bool, string) {
@@ -33,8 +34,7 @@ func getJsonFile(path string) (bool, string) {
 
 func getSecretArray(path string) (bool, map[string]string) {
 
-	var secretArray map[string]string
-	secretArray = make(map[string]string)
+	secretArray := make(map[string]string)
 
 	// Read secrets from Vault for substitution
 	secret, err := Vault.Read(path)
@@ -143,7 +143,7 @@ func performSubstitutions(content *string, secretPath string) (bool, string) {
 	}
 
 	// Ensure all the variables were substituted
-	re := regexp.MustCompile("(%\\{[a-zA-Z0-9_]+\\}%)")
+	re := regexp.MustCompile(`(%\{[a-zA-Z0-9_]+\}%)`)
 	matches := re.FindAllStringSubmatch(*content, -1)
 	if len(matches) > 0 {
 		var matchArray []string
@@ -157,11 +157,7 @@ func performSubstitutions(content *string, secretPath string) (bool, string) {
 }
 
 func checkExt(filename string, ext string) bool {
-	if filepath.Ext(filename) == ext {
-		return true
-	}
-
-	return false
+	return filepath.Ext(filename) == ext
 }
 
 func isJSON(s string) bool {

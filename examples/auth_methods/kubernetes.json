@@ -1,0 +1,25 @@
+{
+  "auth_options": {
+    "type": "kubernetes",
+    "description": "Vault authentication with Kubernetes provider"
+  },
+  "config": {
+    "kubernetes_host": "kubernetes.default.svc:443"
+  },
+  "additional_config": {
+    "roles": [
+      {
+        "name": "my-service",
+        "bound_service_account_names": [
+          "my-service-service-account"
+        ],
+        "bound_service_account_namespaces": [
+          "my-service-namespace"
+        ],
+        "token_policies": [
+          "group-sre"
+        ]
+      }
+    ]
+  }
+}

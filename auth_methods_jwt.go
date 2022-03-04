@@ -3,10 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/go-sockaddr"
-	log "github.com/sirupsen/logrus"
 	"path"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type AuthMethodJWT struct {
@@ -51,34 +51,7 @@ type jwtRole struct {
 	AllowedRedirectURIs []string               `json:"allowed_redirect_uris",yaml:"allowed_redirect_uris"`
 	VerboseOIDCLogging  bool                   `json:"verbose_oidc_logging",yaml:"verbose_oidc_logging"`
 
-	// The set of CIDRs that tokens generated using this role will be bound to
-	TokenBoundCIDRs []*sockaddr.SockAddrMarshaler `json:"token_bound_cidrs",yaml:"token_bound_cidrs"`
-
-	// If set, the token entry will have an explicit maximum TTL set, rather
-	// than deferring to role/mount values
-	TokenExplicitMaxTTL time.Duration `json:"token_explicit_max_ttl",yaml:"token_explicit_max_ttl"`
-
-	// The max TTL to use for the token
-	TokenMaxTTL time.Duration `json:"token_max_ttl",yaml:"token_max_ttl"`
-
-	// If set, core will not automatically add default to the policy list
-	TokenNoDefaultPolicy bool `json:"token_no_default_policy",yaml:"token_no_default_policy"`
-
-	// The maximum number of times a token issued from this role may be used.
-	TokenNumUses int `json:"token_num_uses",yaml:"token_num_uses"`
-
-	// If non-zero, tokens created using this role will be able to be renewed
-	// forever, but will have a fixed renewal period of this value
-	TokenPeriod time.Duration `json:"token_period",yaml:"token_period"`
-
-	// The policies to set
-	TokenPolicies []string `json:"token_policies",yaml:"token_policies"`
-
-	// The type of token this role should issue
-	TokenType string `json:"token_type",yaml:"token_type"`
-
-	// The TTL to user for the token
-	TokenTTL time.Duration `json:"token_ttl",yaml:"token_ttl"`
+	TokenAttributes
 }
 
 func (auth *AuthMethodJWT) Configure() {

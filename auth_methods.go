@@ -3,11 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	VaultApi "github.com/hashicorp/vault/api"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"path"
 	"path/filepath"
+
+	VaultApi "github.com/hashicorp/vault/api"
+	log "github.com/sirupsen/logrus"
 )
 
 type authMethod struct {
@@ -33,7 +34,7 @@ func SyncAuthMethods() {
 func getAuthMethods(authMethodList authMethodList) {
 	files, err := ioutil.ReadDir(Spec.ConfigurationPath + "/auth_methods/")
 	if err != nil {
-		log.Warn("No auth methods found: ", err)
+		log.Debug("No auth methods found: ", err)
 	}
 
 	for _, file := range files {
@@ -147,8 +148,15 @@ func configureAuthMethods(authMethodList authMethodList) {
 			}
 			log.Infof("Running additional configuration for [%s]", authMethodJWT.Path)
 			authMethodJWT.Configure()
+		} else if mount.AuthOptions.Type == "kubernetes" {
+			authMethodKubernetes := AuthMethodKubernetes{
+				Path:             path.Join("auth", mount.Path),
+				AdditionalConfig: mount.AdditionalConfig,
+			}
+			log.Infof("Running additional configuration for [%s]", authMethodKubernetes.Path)
+			authMethodKubernetes.Configure()
 		} else {
-			log.Warn("Auth types other than LDAP not currently configurable, please open PR!")
+			log.Warnf(`Auth type "%s" not currently supported, please open PR!`, mount.AuthOptions.Type)
 		}
 
 	}

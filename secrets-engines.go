@@ -3,10 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	VaultApi "github.com/hashicorp/vault/api"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"path"
+
+	VaultApi "github.com/hashicorp/vault/api"
+	log "github.com/sirupsen/logrus"
 )
 
 type SecretsEngine struct {
@@ -32,7 +33,7 @@ func SyncSecretsEngines() {
 func GetSecretsEngines(secretsEnginesList SecretsEnginesList) {
 	files, err := ioutil.ReadDir(Spec.ConfigurationPath + "/secrets-engines/")
 	if err != nil {
-		log.Warn("No secrets engines found: ", err)
+		log.Debug("No secrets engines found: ", err)
 	}
 
 	for _, file := range files {
@@ -111,8 +112,8 @@ func ConfigureSecretsEngines(secretsEnginesList SecretsEnginesList) {
 		} else if secretsEngine.MountInput.Type == "database" {
 			log.Info("Configuring database backend ", secretsEngine.Path)
 			ConfigureDatabaseSecretsEngine(secretsEngine)
-		} else {
-			log.Warn("Secrets engine types other than 'aws', 'database' and 'identity' not currently configurable, please open PR!")
+		} else if secretsEngine.MountInput.Type != "kv" {
+			log.Warn(`Secrets engine type [%s] supported, please open PR!`, secretsEngine.MountInput.Type)
 		}
 	}
 }

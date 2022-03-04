@@ -3,10 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"path"
 	"path/filepath"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type SecretsEngineDatabase struct {
@@ -104,18 +105,16 @@ func getDatabaseRoles(secretsEngine *SecretsEngine, secretsEngineDatabase *Secre
 func cleanupDatabaseRoles(secretsEngine SecretsEngine, secretsEngineDatabase SecretsEngineDatabase) {
 
 	existing_roles := getSecretList(secretsEngine.Path + "roles")
-	if existing_roles != nil {
-		for _, role := range existing_roles {
-			rolePath := secretsEngine.Path + "roles/" + role
-			if _, ok := secretsEngineDatabase.Roles[role]; ok {
-				log.Debug("[" + rolePath + "] exists in configuration, no cleanup necessary")
-			} else {
-				task := taskDelete{
-					Description: fmt.Sprintf("Database role [%s]", rolePath),
-					Path:        rolePath,
-				}
-				taskPromptChan <- task
+	for _, role := range existing_roles {
+		rolePath := secretsEngine.Path + "roles/" + role
+		if _, ok := secretsEngineDatabase.Roles[role]; ok {
+			log.Debug("[" + rolePath + "] exists in configuration, no cleanup necessary")
+		} else {
+			task := taskDelete{
+				Description: fmt.Sprintf("Database role [%s]", rolePath),
+				Path:        rolePath,
 			}
+			taskPromptChan <- task
 		}
 	}
 }

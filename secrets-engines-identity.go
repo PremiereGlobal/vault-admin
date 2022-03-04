@@ -3,14 +3,15 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/PremiereGlobal/vault-admin/pkg/auth"
-	"github.com/PremiereGlobal/vault-admin/pkg/secrets-engines/identity"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"path"
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/PremiereGlobal/vault-admin/pkg/auth"
+	"github.com/PremiereGlobal/vault-admin/pkg/secrets-engines/identity"
+	log "github.com/sirupsen/logrus"
 )
 
 // This is our identity waitgroup used to halt progress between blocking async tasks within identity
@@ -304,7 +305,7 @@ func (ident *IdentitySecretsEngine) applyGroupUpdates() {
 
 	// This loop sets the ID of the group as well as the members IDs for the groups
 	// and then writes the group to Vault
-	for groupName, _ := range ident.groups {
+	for groupName := range ident.groups {
 		group := ident.groups[groupName]
 		group.ID = ident.existingGroups[groupName].ID
 

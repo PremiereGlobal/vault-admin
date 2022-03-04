@@ -3,12 +3,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	VaultApi "github.com/hashicorp/vault/api"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"path"
 	"path/filepath"
 	"reflect"
+
+	VaultApi "github.com/hashicorp/vault/api"
+	log "github.com/sirupsen/logrus"
 )
 
 // type AuditDevice struct {
@@ -105,7 +106,7 @@ func CleanupAuditDevices(auditDeviceList AuditDeviceList) {
 
 	existingDevices, _ := VaultSys.ListAudit()
 
-	for mountPath, _ := range existingDevices {
+	for mountPath := range existingDevices {
 
 		if _, ok := auditDeviceList[mountPath]; ok {
 			log.Debug("Audit device [" + mountPath + "] exists in configuration, no cleanup necessary")

@@ -3,11 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"path"
 	"strconv"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type SecretsEngineAWS struct {
@@ -34,7 +35,7 @@ type AwsConfigLease struct {
 type awsRoleEntry struct {
 	CredentialType string        `json:"credential_type",yaml:"credential_type"`                     // Entries must all be in the set of ("iam_user", "assumed_role", "federation_token")
 	PolicyArns     []string      `json:"policy_arns",yaml:"policy_arns"`                             // ARNs of managed policies to attach to an IAM user
-	RoleArns       []string      `json:"role_arns,yaml:"role_arns"`                                  // ARNs of roles to assume for AssumedRole credentials
+	RoleArns       []string      `json:"role_arns",yaml:"role_arns"`                                 // ARNs of roles to assume for AssumedRole credentials
 	PolicyDocument string        `json:"policy_document",yaml:"policy_document"`                     // JSON-serialized inline policy to attach to IAM users and/or to specify as the Policy parameter in AssumeRole calls
 	RawPolicy      interface{}   `json:"raw_policy,omitempty",yaml:"raw_policy,omitempty"`           // Custom field to allow policy to be entered as json as opposed to having to escape it
 	DefaultSTSTTL  time.Duration `json:"default_sts_ttl,omitempty",yaml:"default_sts_ttl,omitempty"` // Default TTL for STS credentials
@@ -75,7 +76,7 @@ func ConfigureAwsSecretsEngine(secretsEngine SecretsEngine) {
 	// Write root config
 	// Only write the root config if this is the first time setting up the engine
 	// or if the overwrite_root_config flag is set
-	if secretsEngine.JustEnabled == true || secretsEngineAWS.OverwriteRootCredentials == true {
+	if secretsEngine.JustEnabled || secretsEngineAWS.OverwriteRootCredentials {
 		log.Debug("Writing root config for [" + secretsEngine.Path + "]. JustEnabled=" + strconv.FormatBool(secretsEngine.JustEnabled) + ", OverwriteRootCredentials=" + strconv.FormatBool(secretsEngineAWS.OverwriteRootCredentials))
 
 		rootConfigPath := path.Join(secretsEngine.Path, "config/root")
@@ -150,18 +151,16 @@ func getAwsRoles(secretsEngine *SecretsEngine, secretsEngineAWS *SecretsEngineAW
 func cleanupAwsRoles(secretsEngine SecretsEngine, secretsEngineAWS SecretsEngineAWS) {
 
 	existing_roles := getSecretList(secretsEngine.Path + "roles")
-	if existing_roles != nil {
-		for _, role := range existing_roles {
-			rolePath := secretsEngine.Path + "roles/" + role
-			if _, ok := secretsEngineAWS.Roles[role]; ok {
-				log.Debug("[" + rolePath + "] exists in configuration, no cleanup necessary")
-			} else {
-				task := taskDelete{
-					Description: fmt.Sprintf("AWS role [%s]", rolePath),
-					Path:        rolePath,
-				}
-				taskPromptChan <- task
+	for _, role := range existing_roles {
+		rolePath := secretsEngine.Path + "roles/" + role
+		if _, ok := secretsEngineAWS.Roles[role]; ok {
+			log.Debug("[" + rolePath + "] exists in configuration, no cleanup necessary")
+		} else {
+			task := taskDelete{
+				Description: fmt.Sprintf("AWS role [%s]", rolePath),
+				Path:        rolePath,
 			}
+			taskPromptChan <- task
 		}
 	}
 }

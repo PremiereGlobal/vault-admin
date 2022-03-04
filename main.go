@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
-	VaultApi "github.com/hashicorp/vault/api"
-	GoFlags "github.com/jessevdk/go-flags"
-	envconfig "github.com/kelseyhightower/envconfig"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"reflect"
 	"strconv"
 	"sync"
+
+	VaultApi "github.com/hashicorp/vault/api"
+	GoFlags "github.com/jessevdk/go-flags"
+	envconfig "github.com/kelseyhightower/envconfig"
+	log "github.com/sirupsen/logrus"
 )
 
 // Application options
@@ -60,8 +61,7 @@ func main() {
 	var err error
 
 	// Parse command line arguments first
-	var options GoFlags.Options
-	options = GoFlags.HelpFlag | GoFlags.PassDoubleDash
+	var options GoFlags.Options = GoFlags.HelpFlag | GoFlags.PassDoubleDash
 	argParser := GoFlags.NewParser(&Spec, options)
 	retArgs, err := argParser.ParseArgs(os.Args)
 	if err != nil {
@@ -102,7 +102,10 @@ func main() {
 	conf := &VaultApi.Config{Address: Spec.VaultAddress}
 	tlsConf := &VaultApi.TLSConfig{Insecure: Spec.VaultSkipVerify}
 	conf.ConfigureTLS(tlsConf)
-	VaultClient, _ = VaultApi.NewClient(conf)
+	VaultClient, err = VaultApi.NewClient(conf)
+	if err != nil {
+		log.Fatal(err)
+	}
 	VaultClient.SetToken(Spec.VaultToken)
 
 	// Unset the VaultToken after we've used it
